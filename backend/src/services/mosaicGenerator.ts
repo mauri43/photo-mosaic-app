@@ -18,7 +18,7 @@ sharp.cache(false); // Disable cache entirely
 sharp.concurrency(1); // Process one image at a time to reduce peak memory
 
 // Maximum output dimensions to prevent memory issues (reduced for free tier)
-const MAX_OUTPUT_DIMENSION = 2500;
+const MAX_OUTPUT_DIMENSION = 1500; // Further reduced for 512MB limit
 
 interface TileAssignment {
   cell: GridCell;
@@ -186,39 +186,37 @@ async function analyzeTargetCells(
   cellHeight: number
 ): Promise<GridCell[]> {
   const cells: GridCell[] = [];
-
-  // Process cells in batches for better performance
-  const batchSize = 50;
   const totalCells = cols * rows;
 
-  for (let i = 0; i < totalCells; i += batchSize) {
-    const batchPromises: Promise<GridCell>[] = [];
+  console.log(`Analyzing ${totalCells} cells...`);
 
-    for (let j = i; j < Math.min(i + batchSize, totalCells); j++) {
-      const col = j % cols;
-      const row = Math.floor(j / cols);
-      const x = col * cellWidth;
-      const y = row * cellHeight;
+  // Process cells SEQUENTIALLY to minimize memory usage
+  for (let j = 0; j < totalCells; j++) {
+    const col = j % cols;
+    const row = Math.floor(j / cols);
+    const x = col * cellWidth;
+    const y = row * cellHeight;
 
-      batchPromises.push(
-        calculateRegionAverageColor(
-          targetImage,
-          x,
-          y,
-          Math.max(1, Math.floor(cellWidth)),
-          Math.max(1, Math.floor(cellHeight))
-        ).then(averageColor => ({
-          x,
-          y,
-          width: cellWidth,
-          height: cellHeight,
-          averageColor
-        }))
-      );
+    const averageColor = await calculateRegionAverageColor(
+      targetImage,
+      x,
+      y,
+      Math.max(1, Math.floor(cellWidth)),
+      Math.max(1, Math.floor(cellHeight))
+    );
+
+    cells.push({
+      x,
+      y,
+      width: cellWidth,
+      height: cellHeight,
+      averageColor
+    });
+
+    // Log progress every 50 cells
+    if ((j + 1) % 50 === 0) {
+      console.log(`Analyzed ${j + 1}/${totalCells} cells`);
     }
-
-    const batchResults = await Promise.all(batchPromises);
-    cells.push(...batchResults);
   }
 
   return cells;
@@ -321,56 +319,61 @@ async function compositeMosaic(
 ): Promise<Buffer> {
   console.log(`Compositing ${assignments.length} tiles into ${width}x${height} mosaic`);
 
-  // Process tiles SEQUENTIALLY to minimize memory usage
-  const compositeInputs: sharp.OverlayOptions[] = [];
+  // Process in small batches to avoid memory spikes
+  // Composite 20 tiles at a time onto the canvas
+  const BATCH_SIZE = 20;
 
-  for (let i = 0; i < assignments.length; i++) {
-    const assignment = assignments[i];
-
-    let tileBuffer = await resizeTile(
-      assignment.tile.buffer,
-      cellWidth,
-      cellHeight
-    );
-
-    // Apply tinting if enabled
-    if (allowTinting) {
-      tileBuffer = await applyTint(
-        tileBuffer,
-        assignment.cell.averageColor,
-        assignment.tile.averageColor,
-        0.20 // 20% tint intensity
-      );
-    }
-
-    compositeInputs.push({
-      input: tileBuffer,
-      left: Math.floor(assignment.cell.x),
-      top: Math.floor(assignment.cell.y)
-    });
-
-    // Log progress every 50 tiles
-    if ((i + 1) % 50 === 0) {
-      console.log(`Processed ${i + 1}/${assignments.length} tiles`);
-    }
-  }
-
-  console.log(`Creating final composite...`);
-
-  // Create the final composite with lower quality to save memory
-  const mosaic = await sharp({
+  // Start with a blank canvas
+  let currentCanvas = await sharp({
     create: {
       width: Math.floor(width),
       height: Math.floor(height),
       channels: 3,
       background: { r: 0, g: 0, b: 0 }
     }
-  })
-    .composite(compositeInputs)
-    .jpeg({ quality: 85 }) // Reduced from 95 to save memory
-    .toBuffer();
+  }).jpeg({ quality: 80 }).toBuffer();
 
-  console.log(`Mosaic generated: ${mosaic.length} bytes`);
+  for (let batchStart = 0; batchStart < assignments.length; batchStart += BATCH_SIZE) {
+    const batchEnd = Math.min(batchStart + BATCH_SIZE, assignments.length);
+    const batchInputs: sharp.OverlayOptions[] = [];
 
-  return mosaic;
+    // Prepare batch of tiles
+    for (let i = batchStart; i < batchEnd; i++) {
+      const assignment = assignments[i];
+
+      let tileBuffer = await resizeTile(
+        assignment.tile.buffer,
+        cellWidth,
+        cellHeight
+      );
+
+      // Apply tinting if enabled
+      if (allowTinting) {
+        tileBuffer = await applyTint(
+          tileBuffer,
+          assignment.cell.averageColor,
+          assignment.tile.averageColor,
+          0.20
+        );
+      }
+
+      batchInputs.push({
+        input: tileBuffer,
+        left: Math.floor(assignment.cell.x),
+        top: Math.floor(assignment.cell.y)
+      });
+    }
+
+    // Composite this batch onto the canvas
+    currentCanvas = await sharp(currentCanvas)
+      .composite(batchInputs)
+      .jpeg({ quality: 80 })
+      .toBuffer();
+
+    console.log(`Composited ${batchEnd}/${assignments.length} tiles`);
+  }
+
+  console.log(`Mosaic generated: ${currentCanvas.length} bytes`);
+
+  return currentCanvas;
 }

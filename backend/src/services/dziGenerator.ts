@@ -59,6 +59,7 @@ async function generateLevelTiles(
   // Resize image to this level's dimensions
   const levelImage = await sharp(mosaicBuffer)
     .resize(levelWidth, levelHeight, { fit: 'fill' })
+    .jpeg({ quality: 80 })
     .toBuffer();
 
   // Calculate number of tiles
@@ -67,18 +68,12 @@ async function generateLevelTiles(
 
   console.log(`Level ${level}: ${levelWidth}x${levelHeight}, ${tilesX}x${tilesY} tiles`);
 
-  // Generate tiles
-  const tilePromises: Promise<void>[] = [];
-
+  // Generate tiles SEQUENTIALLY to save memory
   for (let y = 0; y < tilesY; y++) {
     for (let x = 0; x < tilesX; x++) {
-      tilePromises.push(
-        generateTile(session, levelImage, level, x, y, levelWidth, levelHeight)
-      );
+      await generateTile(session, levelImage, level, x, y, levelWidth, levelHeight);
     }
   }
-
-  await Promise.all(tilePromises);
 }
 
 async function generateTile(
@@ -115,7 +110,7 @@ async function generateTile(
         width: tileWidth,
         height: tileHeight
       })
-      .jpeg({ quality: 90 })
+      .jpeg({ quality: 75 }) // Reduced quality for memory savings
       .toBuffer();
 
     const tileKey = `${level}/${tileX}_${tileY}`;
