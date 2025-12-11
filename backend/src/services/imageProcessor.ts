@@ -3,10 +3,27 @@ import type { LabColor, TileImage, ResolutionRequirements } from '../types/index
 import { rgbToLab } from '../utils/colorUtils.js';
 import { v4 as uuidv4 } from 'uuid';
 
+// Normalize image buffer - convert HEIC/HEIF and rotate based on EXIF
+async function normalizeImage(imageBuffer: Buffer): Promise<Buffer> {
+  try {
+    // Sharp automatically handles HEIC/HEIF if libheif is available
+    // It also auto-rotates based on EXIF orientation
+    return await sharp(imageBuffer)
+      .rotate() // Auto-rotate based on EXIF
+      .toBuffer();
+  } catch (error) {
+    console.error('Error normalizing image:', error);
+    // Return original buffer if normalization fails
+    return imageBuffer;
+  }
+}
+
 // Calculate average LAB color from image buffer
 export async function calculateAverageColor(imageBuffer: Buffer): Promise<LabColor> {
   const { data, info } = await sharp(imageBuffer)
-    .resize(50, 50, { fit: 'fill' }) // Downsample for faster processing
+    .rotate() // Auto-rotate based on EXIF
+    .resize(50, 50, { fit: 'fill' })
+    .removeAlpha() // Ensure RGB only
     .raw()
     .toBuffer({ resolveWithObject: true });
 
@@ -29,21 +46,30 @@ export async function calculateAverageColor(imageBuffer: Buffer): Promise<LabCol
 
 // Process uploaded tile image
 export async function processTileImage(imageBuffer: Buffer): Promise<TileImage> {
-  const metadata = await sharp(imageBuffer).metadata();
-  const averageColor = await calculateAverageColor(imageBuffer);
+  try {
+    // First normalize the image (handle HEIC, rotation, etc.)
+    const normalizedBuffer = await normalizeImage(imageBuffer);
 
-  // Store as high-quality JPEG to save memory while preserving quality
-  const processedBuffer = await sharp(imageBuffer)
-    .jpeg({ quality: 90 })
-    .toBuffer();
+    const metadata = await sharp(normalizedBuffer).metadata();
+    const averageColor = await calculateAverageColor(normalizedBuffer);
 
-  return {
-    id: uuidv4(),
-    buffer: processedBuffer,
-    averageColor,
-    width: metadata.width || 0,
-    height: metadata.height || 0
-  };
+    // Store as high-quality JPEG to save memory while preserving quality
+    const processedBuffer = await sharp(normalizedBuffer)
+      .rotate() // Auto-rotate based on EXIF
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    return {
+      id: uuidv4(),
+      buffer: processedBuffer,
+      averageColor,
+      width: metadata.width || 0,
+      height: metadata.height || 0
+    };
+  } catch (error) {
+    console.error('Error processing tile image:', error);
+    throw new Error('Failed to process image. The format may not be supported.');
+  }
 }
 
 // Calculate resolution requirements
@@ -77,13 +103,27 @@ export function calculateResolutionRequirements(
   };
 }
 
-// Get image dimensions
+// Get image dimensions (after rotation correction)
 export async function getImageDimensions(imageBuffer: Buffer): Promise<{ width: number; height: number }> {
-  const metadata = await sharp(imageBuffer).metadata();
-  return {
-    width: metadata.width || 0,
-    height: metadata.height || 0
-  };
+  try {
+    // Get dimensions after auto-rotation
+    const { width, height } = await sharp(imageBuffer)
+      .rotate() // Auto-rotate based on EXIF
+      .metadata();
+
+    return {
+      width: width || 0,
+      height: height || 0
+    };
+  } catch (error) {
+    console.error('Error getting image dimensions:', error);
+    // Fallback to raw metadata
+    const metadata = await sharp(imageBuffer).metadata();
+    return {
+      width: metadata.width || 0,
+      height: metadata.height || 0
+    };
+  }
 }
 
 // Calculate average color for a region of an image
@@ -97,6 +137,7 @@ export async function calculateRegionAverageColor(
   const { data, info } = await sharp(imageBuffer)
     .extract({ left: Math.floor(x), top: Math.floor(y), width: Math.floor(width), height: Math.floor(height) })
     .resize(10, 10, { fit: 'fill' })
+    .removeAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
 

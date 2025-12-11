@@ -48,6 +48,7 @@ export interface AppState {
   targetImagePreview: string | null;
   targetImageDimensions: { width: number; height: number } | null;
   imageAnalysis: ImageAnalysis | null;
+  isUploadingTarget: boolean;
   manualMode: boolean;
   desiredWidth: number;
   desiredHeight: number;

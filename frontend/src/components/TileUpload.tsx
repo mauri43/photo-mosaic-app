@@ -1,5 +1,4 @@
-import { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useCallback, useState, useRef } from 'react';
 import { Upload, LayoutGrid, Trash2, CheckCircle } from 'lucide-react';
 
 interface TileUploadProps {
@@ -19,13 +18,21 @@ export function TileUpload({
 }: TileUploadProps) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files).filter(f =>
+      f.type.startsWith('image/') ||
+      f.name.toLowerCase().endsWith('.heic') ||
+      f.name.toLowerCase().endsWith('.heif')
+    );
+
+    if (fileArray.length > 0) {
+      console.log(`Processing ${fileArray.length} tile images`);
       setIsUploading(true);
       setUploadProgress(0);
       try {
-        await onUpload(acceptedFiles, setUploadProgress);
+        await onUpload(fileArray, setUploadProgress);
       } finally {
         setIsUploading(false);
         setUploadProgress(null);
@@ -33,19 +40,47 @@ export function TileUpload({
     }
   }, [onUpload]);
 
-  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp']
-    },
-    noClick: tileCount > 0,
-    noKeyboard: tileCount > 0
-  });
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(e.target.files);
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [handleFiles]);
+
+  const handleClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  }, [handleFiles]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
 
   const hasEnoughTiles = tileCount >= requiredCount;
 
   return (
     <div className="space-y-4">
+      {/* Hidden file input - iOS compatible with multiple selection */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.heic,.heif"
+        multiple
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <LayoutGrid className="w-5 h-5 text-gray-400" />
@@ -59,7 +94,7 @@ export function TileUpload({
         {tileCount > 0 && (
           <button
             onClick={onClear}
-            className="text-red-400 hover:text-red-300 text-sm flex items-center gap-1"
+            className="text-red-400 hover:text-red-300 active:text-red-200 text-sm flex items-center gap-1"
           >
             <Trash2 className="w-4 h-4" />
             Clear all
@@ -78,36 +113,33 @@ export function TileUpload({
       )}
 
       {/* Status message */}
-      {!hasEnoughTiles && tileCount > 0 && (
+      {!hasEnoughTiles && tileCount > 0 && requiredCount > 0 && (
         <div className="text-yellow-400 text-sm bg-yellow-400/10 rounded-lg px-3 py-2">
-          Need {requiredCount - tileCount} more images for selected resolution
+          Need {requiredCount - tileCount} more images for selected quality
         </div>
       )}
 
-      {/* Dropzone */}
+      {/* Upload area */}
       <div
-        {...getRootProps()}
+        onClick={tileCount === 0 ? handleClick : undefined}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
         className={`
           border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200
-          ${isDragActive
-            ? 'border-blue-500 bg-blue-500/10'
-            : tileCount > 0
-              ? 'border-gray-700 bg-gray-800/30'
-              : 'border-gray-600 hover:border-gray-500 bg-gray-800/50 cursor-pointer'
+          ${tileCount > 0
+            ? 'border-gray-700 bg-gray-800/30'
+            : 'border-gray-600 hover:border-gray-500 bg-gray-800/50 cursor-pointer active:bg-gray-700/50'
           }
+          ${isUploading ? 'opacity-50 pointer-events-none' : ''}
         `}
       >
-        <input {...getInputProps()} />
-
         {isUploading ? (
           <div className="flex flex-col items-center gap-2">
             <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
             <p className="text-gray-400">Processing images...</p>
-          </div>
-        ) : isDragActive ? (
-          <div className="flex flex-col items-center gap-2">
-            <Upload className="w-10 h-10 text-blue-400" />
-            <p className="text-blue-400 font-medium">Drop images here</p>
+            {uploadProgress !== null && (
+              <p className="text-gray-500 text-sm">{uploadProgress}% uploaded</p>
+            )}
           </div>
         ) : tileCount > 0 ? (
           <div className="space-y-3">
@@ -130,9 +162,9 @@ export function TileUpload({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                open();
+                handleClick();
               }}
-              className="text-blue-400 hover:text-blue-300 text-sm underline"
+              className="text-blue-400 hover:text-blue-300 active:text-blue-200 text-sm underline"
             >
               Add more images
             </button>
@@ -142,14 +174,14 @@ export function TileUpload({
             <Upload className="w-10 h-10 text-gray-400" />
             <div>
               <p className="text-gray-300 font-medium">
-                Drag & drop tile images here
+                Tap to select tile images
               </p>
               <p className="text-gray-500 text-sm mt-1">
-                or click to browse (select multiple)
+                Select multiple photos from your library
               </p>
             </div>
             <p className="text-gray-600 text-xs">
-              Supports PNG, JPG, GIF, WebP • Up to 1000 images
+              Supports PNG, JPG, HEIC, WebP
             </p>
           </div>
         )}

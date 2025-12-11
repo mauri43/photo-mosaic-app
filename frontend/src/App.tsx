@@ -99,6 +99,7 @@ function App() {
               onUpload={uploadTarget}
               preview={state.targetImagePreview}
               dimensions={state.targetImageDimensions}
+              isLoading={state.isUploadingTarget}
             />
 
             {/* Image Analysis Results */}

@@ -1,27 +1,45 @@
-import { useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { Upload, Image as ImageIcon } from 'lucide-react';
+import { useCallback, useRef } from 'react';
+import { Image as ImageIcon, Camera } from 'lucide-react';
 
 interface TargetUploadProps {
   onUpload: (file: File) => void;
   preview: string | null;
   dimensions: { width: number; height: number } | null;
+  isLoading?: boolean;
 }
 
-export function TargetUpload({ onUpload, preview, dimensions }: TargetUploadProps) {
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      onUpload(acceptedFiles[0]);
+export function TargetUpload({ onUpload, preview, dimensions, isLoading }: TargetUploadProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      console.log('File selected:', file.name, file.type, file.size);
+      onUpload(file);
+    }
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   }, [onUpload]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp']
-    },
-    maxFiles: 1
-  });
+  const handleClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      onUpload(file);
+    }
+  }, [onUpload]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
 
   if (preview) {
     return (
@@ -41,18 +59,20 @@ export function TargetUpload({ onUpload, preview, dimensions }: TargetUploadProp
             )}
           </div>
         </div>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,.heic,.heif"
+          capture="environment"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
         <button
-          onClick={() => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = (e) => {
-              const file = (e.target as HTMLInputElement).files?.[0];
-              if (file) onUpload(file);
-            };
-            input.click();
-          }}
-          className="text-sm text-blue-400 hover:text-blue-300 underline"
+          onClick={handleClick}
+          className="text-sm text-blue-400 hover:text-blue-300 underline active:text-blue-200"
         >
           Change target image
         </button>
@@ -61,40 +81,71 @@ export function TargetUpload({ onUpload, preview, dimensions }: TargetUploadProp
   }
 
   return (
-    <div
-      {...getRootProps()}
-      className={`
-        border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-        transition-all duration-200
-        ${isDragActive
-          ? 'border-blue-500 bg-blue-500/10'
-          : 'border-gray-600 hover:border-gray-500 bg-gray-800/50'
-        }
-      `}
-    >
-      <input {...getInputProps()} />
-      <div className="flex flex-col items-center gap-4">
-        {isDragActive ? (
-          <>
-            <Upload className="w-12 h-12 text-blue-400" />
-            <p className="text-blue-400 font-medium">Drop the image here</p>
-          </>
+    <div className="space-y-4">
+      {/* Hidden file input - iOS compatible */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.heic,.heif"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {/* Main upload area */}
+      <div
+        onClick={handleClick}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        className={`
+          border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+          transition-all duration-200 active:bg-gray-700/50
+          border-gray-600 hover:border-gray-500 bg-gray-800/50
+          ${isLoading ? 'opacity-50 pointer-events-none' : ''}
+        `}
+      >
+        {isLoading ? (
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-400">Processing image...</p>
+          </div>
         ) : (
-          <>
+          <div className="flex flex-col items-center gap-4">
             <ImageIcon className="w-12 h-12 text-gray-400" />
             <div>
               <p className="text-gray-300 font-medium">
-                Drag & drop your target image here
+                Tap to select your target image
               </p>
               <p className="text-gray-500 text-sm mt-1">
-                or click to browse files
+                or drag & drop on desktop
               </p>
             </div>
             <p className="text-gray-600 text-xs">
-              Supports PNG, JPG, GIF, WebP
+              Supports PNG, JPG, HEIC, WebP
             </p>
-          </>
+          </div>
         )}
+      </div>
+
+      {/* Alternative: Camera button for mobile */}
+      <div className="flex justify-center">
+        <button
+          onClick={() => {
+            // Create a separate input for camera capture
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.onchange = (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0];
+              if (file) onUpload(file);
+            };
+            input.click();
+          }}
+          className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 active:text-gray-200"
+        >
+          <Camera className="w-4 h-4" />
+          Take a photo instead
+        </button>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ const initialState: AppState = {
   targetImagePreview: null,
   targetImageDimensions: null,
   imageAnalysis: null,
+  isUploadingTarget: false,
   manualMode: false,
   desiredWidth: 3000,
   desiredHeight: 2000,
@@ -64,13 +65,20 @@ export function useSession() {
   const uploadTarget = useCallback(async (file: File) => {
     if (!state.sessionId) return;
 
-    setState(prev => ({ ...prev, error: null }));
+    console.log('Starting target upload:', file.name, file.type, file.size);
+    setState(prev => ({ ...prev, error: null, isUploadingTarget: true }));
 
     try {
-      // Create preview
-      const preview = URL.createObjectURL(file);
+      // Create preview - for HEIC we might not be able to preview directly
+      let preview: string;
+      try {
+        preview = URL.createObjectURL(file);
+      } catch {
+        preview = ''; // Will show loading state
+      }
 
       const { width, height, analysis } = await api.uploadTargetImage(state.sessionId, file);
+      console.log('Target upload successful:', width, height);
 
       setState(prev => ({
         ...prev,
@@ -79,12 +87,15 @@ export function useSession() {
         imageAnalysis: analysis,
         desiredWidth: width,
         desiredHeight: height,
-        step: 2
+        step: 2,
+        isUploadingTarget: false
       }));
     } catch (error) {
+      console.error('Target upload failed:', error);
       setState(prev => ({
         ...prev,
-        error: 'Failed to upload target image'
+        error: 'Failed to upload target image. Please try a different image format.',
+        isUploadingTarget: false
       }));
     }
   }, [state.sessionId]);
