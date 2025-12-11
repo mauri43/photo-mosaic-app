@@ -1,27 +1,56 @@
 import { useSession } from './hooks/useSession';
-import { StepIndicator } from './components/StepIndicator';
 import { TargetUpload } from './components/TargetUpload';
-import { DimensionsInput } from './components/DimensionsInput';
 import { TileUpload } from './components/TileUpload';
-import { SettingsPanel } from './components/SettingsPanel';
-import { GenerateButton } from './components/GenerateButton';
 import { DeepZoomViewer } from './components/DeepZoomViewer';
 import { ErrorAlert } from './components/ErrorAlert';
-import { Grid3X3, Info, Settings, Wand2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play } from 'lucide-react';
+import type { Resolution } from './types';
 
-const STEPS = ['Target Image', 'Upload Tiles', 'Settings', 'View Mosaic'];
+const STEPS = [
+  { label: 'Upload Target', step: 1 },
+  { label: 'Tile Library', step: 2 },
+  { label: 'Settings', step: 3 },
+  { label: 'Generate', step: 4 }
+];
+
+// Logo SVG component
+function LogoIcon() {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
+      <defs>
+        <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
+          <stop offset="0%" stopColor="#38bdf8"/>
+          <stop offset="100%" stopColor="#a855f7"/>
+        </linearGradient>
+      </defs>
+      <rect x="2" y="2" width="12" height="12" rx="2" fill="url(#logoGrad)"/>
+      <rect x="18" y="2" width="12" height="12" rx="2" fill="url(#logoGrad)" opacity="0.7"/>
+      <rect x="2" y="18" width="12" height="12" rx="2" fill="url(#logoGrad)" opacity="0.5"/>
+      <rect x="18" y="18" width="12" height="12" rx="2" fill="url(#logoGrad)" opacity="0.3"/>
+    </svg>
+  );
+}
+
+// Viewer placeholder SVG
+function ViewerPlaceholderIcon() {
+  return (
+    <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-20 h-20 mb-4 opacity-30">
+      <rect x="8" y="8" width="28" height="28" rx="4"/>
+      <rect x="44" y="8" width="28" height="28" rx="4"/>
+      <rect x="8" y="44" width="28" height="28" rx="4"/>
+      <rect x="44" y="44" width="28" height="28" rx="4"/>
+    </svg>
+  );
+}
 
 function App() {
   const {
     state,
     uploadTarget,
-    setManualMode,
-    setDimensions,
     uploadTiles,
     clearTiles,
     updateSettings,
     setResolution,
-    setUseAllTiles,
     setNineXDetail,
     setTintPercentage,
     setTileSize,
@@ -37,13 +66,7 @@ function App() {
 
   // Get recommended tile count based on mode
   const getRecommendedCount = () => {
-    if (state.manualMode && state.requirements) {
-      switch (state.selectedResolution) {
-        case 'low': return state.requirements.low;
-        case 'medium': return state.requirements.medium;
-        case 'high': return state.requirements.high;
-      }
-    } else if (state.imageAnalysis) {
+    if (state.imageAnalysis) {
       return state.imageAnalysis.recommendedTiles[state.selectedResolution];
     }
     return 0;
@@ -53,70 +76,58 @@ function App() {
 
   // Handle regenerating with new settings from the viewer
   const handleRegenerateWithSettings = async (settings: { allowDuplicates: boolean; allowTinting: boolean; nineXDetail: boolean }) => {
-    // Update settings first, then regenerate
     await updateSettings(settings);
-    // Also update nineXDetail state
     setNineXDetail(settings.nineXDetail);
     generateMosaic();
   };
 
-  // Show viewer if mosaic is generated
-  if (state.hasMosaic && state.dziMetadata) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-deep)] text-white">
-        {state.error && <ErrorAlert message={state.error} onDismiss={clearError} />}
+  // Determine current active step for nav
+  const getCurrentNavStep = () => {
+    if (state.hasMosaic) return 4;
+    if (state.tileCount > 0) return 3;
+    if (state.targetImagePreview) return 2;
+    return 1;
+  };
 
-        <header className="glass-panel border-b border-[rgba(148,163,184,0.15)] px-6 py-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Grid3X3 className="w-8 h-8 text-sky-400" />
-              <h1 className="text-xl font-bold">Photo Mosaic Generator</h1>
-            </div>
-            <div className="text-sm text-gray-400">
-              {state.dziMetadata.width} x {state.dziMetadata.height} px
-            </div>
-          </div>
-        </header>
-
-        <main className="h-[calc(100vh-73px)]">
-          <DeepZoomViewer
-            dziUrl={getDziUrl()}
-            downloadUrl={getDownloadUrl()}
-            onReset={reset}
-            onChangeTarget={changeTarget}
-            tileCount={state.tileCount}
-            allowDuplicates={state.allowDuplicates}
-            allowTinting={state.allowTinting}
-            nineXDetail={state.nineXDetail}
-            onRegenerateWithSettings={handleRegenerateWithSettings}
-            isRegenerating={state.isGenerating}
-          />
-        </main>
-      </div>
-    );
-  }
+  const currentNavStep = getCurrentNavStep();
 
   return (
-    <div className="min-h-screen bg-[var(--bg-deep)] text-white">
+    <div className="min-h-screen text-white">
       {state.error && <ErrorAlert message={state.error} onDismiss={clearError} />}
 
-      <header className="glass-panel border-b border-[rgba(148,163,184,0.15)] px-6 py-4">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <Grid3X3 className="w-8 h-8 text-sky-400" />
-          <h1 className="text-xl font-bold">Photo Mosaic Generator</h1>
+      {/* Navigation */}
+      <nav className="nav">
+        <div className="nav-logo">
+          <LogoIcon />
+          <span>Photo Mosaic Generator</span>
         </div>
-      </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        <StepIndicator currentStep={state.step} steps={STEPS} />
+        <div className="nav-steps">
+          {STEPS.map((s, i) => (
+            <div key={s.step}>
+              <div className={`nav-step ${currentNavStep === s.step ? 'active' : ''} ${currentNavStep > s.step ? 'completed' : ''}`}>
+                <span className="nav-step-dot"></span>
+                {s.label}
+              </div>
+              {i < STEPS.length - 1 && <div className="nav-step-divider"></div>}
+            </div>
+          ))}
+        </div>
 
-        <div className="space-y-8">
+        <div></div>
+      </nav>
+
+      {/* Main Layout */}
+      <main className="main-layout">
+        {/* Control Panel */}
+        <aside className="panel">
           {/* Step 1: Target Image */}
-          <section className="glass-panel rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full btn-gradient text-sm flex items-center justify-center">1</span>
-              Upload Target Image
-            </h2>
+          <section className="panel-section">
+            <div className="section-header">
+              <span className="section-number">1</span>
+              <h2 className="section-title">Target Image</h2>
+            </div>
+
             <TargetUpload
               onUpload={uploadTarget}
               preview={state.targetImagePreview}
@@ -124,170 +135,231 @@ function App() {
               isLoading={state.isUploadingTarget}
             />
 
-            {/* Image Analysis Results */}
-            {state.imageAnalysis && (
-              <div className="mt-4 p-4 glass-panel rounded-lg">
-                <div className="flex items-center gap-2 mb-3">
-                  <Wand2 className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm font-medium text-purple-300">Image Analysis</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-400">Complexity:</span>
-                    <span className="ml-2 text-white">{state.imageAnalysis.complexity}/100</span>
-                    <div className="mt-1 h-2 bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"
-                        style={{ width: `${state.imageAnalysis.complexity}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-gray-400">Recommended tiles:</span>
-                    <div className="text-xs mt-1 space-x-3">
-                      <span className="text-yellow-400">Low: {state.imageAnalysis.recommendedTiles.low}</span>
-                      <span className="text-sky-400">Med: {state.imageAnalysis.recommendedTiles.medium}</span>
-                      <span className="text-green-400">High: {state.imageAnalysis.recommendedTiles.high}</span>
-                    </div>
-                  </div>
+            {state.targetImagePreview && (
+              <p className="dropzone-hint" style={{ marginTop: '12px', fontSize: '0.75rem' }}>
+                Best results with high-resolution images
+              </p>
+            )}
+          </section>
+
+          {/* Step 2: Tile Library */}
+          <section className="panel-section">
+            <div className="section-header">
+              <span className="section-number">2</span>
+              <h2 className="section-title">Tile Library</h2>
+            </div>
+
+            <TileUpload
+              onUpload={uploadTiles}
+              onClear={clearTiles}
+              tileCount={state.tileCount}
+              previews={state.tilePreviews}
+              requiredCount={recommendedCount}
+            />
+
+            {/* Allow tile reuse toggle */}
+            <div className="toggle-row" style={{ marginTop: '16px' }}>
+              <span className="toggle-text">Allow tile reuse</span>
+              <div
+                className={`toggle ${state.allowDuplicates ? 'active' : ''}`}
+                onClick={() => updateSettings({ allowDuplicates: !state.allowDuplicates })}
+              ></div>
+            </div>
+
+            {/* Limit repeats per tile */}
+            {state.allowDuplicates && (
+              <div className="control-group" style={{ marginTop: '12px' }}>
+                <div className="control-label">Limit repeats per tile</div>
+                <div className="slider-container">
+                  <span className="slider-value">{state.maxRepeatsPerTile}</span>
+                  <input
+                    type="range"
+                    className="slider"
+                    min="1"
+                    max="20"
+                    value={state.maxRepeatsPerTile}
+                    onChange={(e) => setMaxRepeatsPerTile(Number(e.target.value))}
+                  />
                 </div>
               </div>
             )}
           </section>
 
-          {/* Step 2: Upload Tiles */}
-          {state.step >= 2 && (
-            <section className="glass-panel rounded-xl p-6">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full btn-gradient text-sm flex items-center justify-center">2</span>
-                Upload Tile Images
-              </h2>
-              <TileUpload
-                onUpload={uploadTiles}
-                onClear={clearTiles}
-                tileCount={state.tileCount}
-                previews={state.tilePreviews}
-                requiredCount={recommendedCount}
-              />
-            </section>
-          )}
+          {/* Step 3: Settings */}
+          <section className="panel-section">
+            <div className="section-header">
+              <span className="section-number">3</span>
+              <h2 className="section-title">Mosaic Settings</h2>
+            </div>
 
-          {/* Step 3: Settings & Generate */}
-          {state.step >= 2 && state.tileCount > 0 && (
-            <section className="glass-panel rounded-xl p-6">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full btn-gradient text-sm flex items-center justify-center">3</span>
-                Settings & Generate
-              </h2>
-
-              <div className="space-y-6">
-                {/* Mode Toggle */}
-                <div className="flex items-center justify-between p-3 glass-panel rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Settings className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <div className="text-sm font-medium text-gray-300">
-                        Advanced Settings
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Customize output dimensions and tile calculations
-                      </div>
-                    </div>
-                  </div>
+            {/* Quality / Resolution */}
+            <div className="control-group">
+              <div className="control-label">Quality / Resolution</div>
+              <div className="segmented">
+                {(['low', 'medium', 'high'] as Resolution[]).map((res) => (
                   <button
-                    onClick={() => setManualMode(!state.manualMode)}
-                    className="flex items-center gap-1 text-sky-400 hover:text-blue-300 text-sm"
+                    key={res}
+                    className={`segmented-btn ${state.selectedResolution === res ? 'active' : ''}`}
+                    onClick={() => setResolution(res)}
                   >
-                    {state.manualMode ? (
-                      <>Hide <ChevronUp className="w-4 h-4" /></>
-                    ) : (
-                      <>Show <ChevronDown className="w-4 h-4" /></>
-                    )}
+                    {res === 'low' ? 'Low' : res === 'medium' ? 'Standard' : 'High'}
                   </button>
-                </div>
+                ))}
+              </div>
+            </div>
 
-                {/* Manual Mode: Dimensions */}
-                {state.manualMode && (
-                  <div className="p-4 glass-panel rounded-lg border border-[rgba(148,163,184,0.15)]">
-                    <h3 className="text-sm font-medium text-gray-300 mb-3">Output Dimensions</h3>
-                    <DimensionsInput
-                      initialWidth={state.desiredWidth}
-                      initialHeight={state.desiredHeight}
-                      originalDimensions={state.targetImageDimensions}
-                      requirements={state.requirements}
-                      onSubmit={setDimensions}
-                    />
-                  </div>
-                )}
-
-                {/* Settings Panel */}
-                <SettingsPanel
-                  allowDuplicates={state.allowDuplicates}
-                  allowTinting={state.allowTinting}
-                  nineXDetail={state.nineXDetail}
-                  selectedResolution={state.selectedResolution}
-                  requirements={state.manualMode ? state.requirements : null}
-                  imageAnalysis={!state.manualMode ? state.imageAnalysis : null}
-                  tileCount={state.tileCount}
-                  useAllTiles={state.useAllTiles}
-                  manualMode={state.manualMode}
-                  onDuplicatesChange={(value) => updateSettings({ allowDuplicates: value })}
-                  onTintingChange={(value) => updateSettings({ allowTinting: value })}
-                  onNineXDetailChange={setNineXDetail}
-                  onResolutionChange={setResolution}
-                  onUseAllTilesChange={setUseAllTiles}
-                  tintPercentage={state.tintPercentage}
-                  tileSize={state.tileSize}
-                  maxRepeatsPerTile={state.maxRepeatsPerTile}
-                  colorMode={state.colorMode}
-                  onTintPercentageChange={setTintPercentage}
-                  onTileSizeChange={setTileSize}
-                  onMaxRepeatsChange={setMaxRepeatsPerTile}
-                  onColorModeChange={setColorMode}
-                />
-
-                {/* Generate Button */}
-                <GenerateButton
-                  onClick={generateMosaic}
-                  isGenerating={state.isGenerating}
-                  disabled={!state.sessionId}
-                  tileCount={state.tileCount}
-                  selectedResolution={state.selectedResolution}
-                  recommendedCount={recommendedCount}
-                  allowDuplicates={state.allowDuplicates}
-                  useAllTiles={state.useAllTiles}
-                  manualMode={state.manualMode}
+            {/* Tile Size */}
+            <div className="control-group">
+              <div className="control-label">Tile Size</div>
+              <div className="slider-container">
+                <span className="slider-value">{state.tileSize}px</span>
+                <input
+                  type="range"
+                  className="slider"
+                  min="8"
+                  max="32"
+                  value={state.tileSize}
+                  onChange={(e) => setTileSize(Number(e.target.value))}
                 />
               </div>
-            </section>
-          )}
-
-          {/* Info Box */}
-          <div className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-4 flex items-start gap-3">
-            <Info className="w-5 h-5 text-sky-400 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-gray-300 space-y-2">
-              <p>
-                <strong>Smart Analysis:</strong> The system analyzes your target image complexity and recommends
-                the optimal number of tiles for each quality level.
-              </p>
-              <p>
-                <strong>High Quality Bonus:</strong> When you select High quality and upload more tiles than needed,
-                all tiles will be used for maximum detail.
-              </p>
-              <p>
-                <strong>Memory-only storage:</strong> All data is stored only in memory.
-                Closing or refreshing the page will delete everything.
-              </p>
             </div>
-          </div>
-        </div>
-      </main>
 
-      <footer className="border-t border-gray-800 px-6 py-4 mt-8">
-        <div className="max-w-4xl mx-auto text-center text-sm text-gray-500">
-          Photo Mosaic Generator • All data stored in memory only
-        </div>
-      </footer>
+            {/* 9x Detail Mode */}
+            <div className="toggle-row">
+              <div>
+                <span className="toggle-text">Enable 9x detail (3x3 sub-tiles)</span>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  Slower but higher detail
+                </p>
+              </div>
+              <div
+                className={`toggle ${state.nineXDetail ? 'active' : ''}`}
+                onClick={() => setNineXDetail(!state.nineXDetail)}
+              ></div>
+            </div>
+
+            {/* Color & Blending */}
+            <div className="control-group" style={{ marginTop: '20px' }}>
+              <div className="control-label">Color & Blending</div>
+
+              <div className="checkbox-row">
+                <div
+                  className={`checkbox ${state.allowTinting ? 'checked' : ''}`}
+                  onClick={() => updateSettings({ allowTinting: !state.allowTinting })}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </div>
+                <span className="checkbox-text">Apply color tinting / stained-glass effect</span>
+              </div>
+
+              {state.allowTinting && (
+                <div className="slider-container" style={{ marginTop: '12px' }}>
+                  <span className="slider-value">{state.tintPercentage}%</span>
+                  <input
+                    type="range"
+                    className="slider"
+                    min="0"
+                    max="100"
+                    value={state.tintPercentage}
+                    onChange={(e) => setTintPercentage(Number(e.target.value))}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Color Mode */}
+            <div className="control-group" style={{ marginTop: '16px' }}>
+              <select
+                value={state.colorMode}
+                onChange={(e) => setColorMode(e.target.value as 'blend' | 'vibrant' | 'muted')}
+              >
+                <option value="blend">Blend with Target</option>
+                <option value="vibrant">Vibrant</option>
+                <option value="muted">Muted</option>
+              </select>
+            </div>
+          </section>
+
+          {/* Step 4: Generate */}
+          <section className="panel-section">
+            <div className="section-header">
+              <span className="section-number">4</span>
+              <h2 className="section-title">Generate & Export</h2>
+            </div>
+
+            <button
+              className="btn btn-primary btn-block"
+              onClick={generateMosaic}
+              disabled={!state.sessionId || state.tileCount === 0 || !state.targetImagePreview || state.isGenerating}
+            >
+              <Play className="w-4 h-4" />
+              {state.isGenerating ? 'Generating...' : 'Generate Mosaic'}
+            </button>
+
+            {/* Progress */}
+            {state.isGenerating && (
+              <div style={{ marginTop: '24px' }}>
+                <div className="progress-bar-bg">
+                  <div className="progress-bar" style={{ width: '60%' }}></div>
+                </div>
+                <div className="progress-status">
+                  <div className="progress-spinner"></div>
+                  <span className="progress-text">Generating mosaic...</span>
+                </div>
+              </div>
+            )}
+
+            {/* Summary after generation */}
+            {state.hasMosaic && state.dziMetadata && (
+              <div style={{
+                marginTop: '16px',
+                padding: '16px',
+                background: 'var(--bg-glass-light)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--accent-green)',
+                color: 'var(--accent-green)',
+                fontSize: '0.85rem'
+              }}>
+                <p><strong>Complete!</strong> Generated {state.dziMetadata.width} x {state.dziMetadata.height}px mosaic</p>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ marginTop: '8px' }}
+                  onClick={changeTarget}
+                >
+                  Start over with new target
+                </button>
+              </div>
+            )}
+          </section>
+        </aside>
+
+        {/* Viewer */}
+        <section className="viewer">
+          {state.hasMosaic && state.dziMetadata ? (
+            <DeepZoomViewer
+              dziUrl={getDziUrl()}
+              downloadUrl={getDownloadUrl()}
+              onReset={reset}
+              onChangeTarget={changeTarget}
+              tileCount={state.tileCount}
+              allowDuplicates={state.allowDuplicates}
+              allowTinting={state.allowTinting}
+              nineXDetail={state.nineXDetail}
+              onRegenerateWithSettings={handleRegenerateWithSettings}
+              isRegenerating={state.isGenerating}
+            />
+          ) : (
+            <div className="viewer-canvas">
+              <div className="viewer-placeholder">
+                <ViewerPlaceholderIcon />
+                <p className="viewer-placeholder-text">Your mosaic will appear here</p>
+              </div>
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }

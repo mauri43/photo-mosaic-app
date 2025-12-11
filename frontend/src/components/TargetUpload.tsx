@@ -1,5 +1,4 @@
-import { useCallback, useRef } from 'react';
-import { Image as ImageIcon, Camera } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
 
 interface TargetUploadProps {
   onUpload: (file: File) => void;
@@ -8,16 +7,26 @@ interface TargetUploadProps {
   isLoading?: boolean;
 }
 
+// Target image dropzone icon
+function TargetIcon() {
+  return (
+    <svg className="dropzone-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="6" y="10" width="36" height="28" rx="4"/>
+      <circle cx="18" cy="22" r="4"/>
+      <path d="M42 30l-10-8-8 6-6-4-12 10"/>
+    </svg>
+  );
+}
+
 export function TargetUpload({ onUpload, preview, dimensions, isLoading }: TargetUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      console.log('File selected:', file.name, file.type, file.size);
       onUpload(file);
     }
-    // Reset input so same file can be selected again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -30,6 +39,7 @@ export function TargetUpload({ onUpload, preview, dimensions, isLoading }: Targe
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('image/')) {
       onUpload(file);
@@ -41,111 +51,84 @@ export function TargetUpload({ onUpload, preview, dimensions, isLoading }: Targe
     e.stopPropagation();
   }, []);
 
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  // Show preview if image is uploaded
   if (preview) {
     return (
-      <div className="space-y-4">
-        <div className="relative rounded-lg overflow-hidden border-2 border-green-500 bg-gray-800">
-          <img
-            src={preview}
-            alt="Target"
-            className="w-full h-64 object-contain bg-gray-900"
-          />
-          <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-4 py-2 text-sm">
-            <span className="text-green-400">Target image loaded</span>
-            {dimensions && (
-              <span className="text-gray-400 ml-2">
-                ({dimensions.width} x {dimensions.height} px)
-              </span>
-            )}
+      <div>
+        <div className="uploaded-preview">
+          <div className="uploaded-image-container">
+            <img
+              src={preview}
+              alt="Target preview"
+              className="uploaded-thumb"
+            />
+            <div className="uploaded-info">
+              <p className="uploaded-name">Target image</p>
+              {dimensions && (
+                <p className="uploaded-meta">{dimensions.width} x {dimensions.height} px</p>
+              )}
+            </div>
+          </div>
+          <div style={{ marginTop: '12px' }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.heic,.heif"
+              onChange={handleFileChange}
+              className="hidden"
+              style={{ display: 'none' }}
+            />
+            <button className="btn btn-ghost btn-sm" onClick={handleClick}>
+              Replace image
+            </button>
           </div>
         </div>
-
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,.heic,.heif"
-          capture="environment"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-
-        <button
-          onClick={handleClick}
-          className="text-sm text-blue-400 hover:text-blue-300 underline active:text-blue-200"
-        >
-          Change target image
-        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Hidden file input - iOS compatible */}
+    <div>
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*,.heic,.heif"
         onChange={handleFileChange}
-        className="hidden"
+        style={{ display: 'none' }}
       />
 
-      {/* Main upload area */}
       <div
         onClick={handleClick}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className={`
-          border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-          transition-all duration-200 active:bg-gray-700/50
-          border-gray-600 hover:border-gray-500 bg-gray-800/50
-          ${isLoading ? 'opacity-50 pointer-events-none' : ''}
-        `}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        className={`dropzone ${isDragging ? 'drag-over' : ''} ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
       >
         {isLoading ? (
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-400">Processing image...</p>
-          </div>
+          <>
+            <div className="progress-spinner" style={{ width: '48px', height: '48px', margin: '0 auto 16px' }} />
+            <p className="dropzone-text">Processing image...</p>
+          </>
         ) : (
-          <div className="flex flex-col items-center gap-4">
-            <ImageIcon className="w-12 h-12 text-gray-400" />
-            <div>
-              <p className="text-gray-300 font-medium">
-                Tap to select your target image
-              </p>
-              <p className="text-gray-500 text-sm mt-1">
-                or drag & drop on desktop
-              </p>
-            </div>
-            <p className="text-gray-600 text-xs">
-              Supports PNG, JPG, HEIC, WebP
-            </p>
-          </div>
+          <>
+            <TargetIcon />
+            <p className="dropzone-text">Upload Target Image</p>
+            <p className="dropzone-hint">Drag & drop or click to browse</p>
+          </>
         )}
-      </div>
-
-      {/* Alternative: Camera button for mobile */}
-      <div className="flex justify-center">
-        <button
-          onClick={() => {
-            // Create a separate input for camera capture
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.capture = 'environment';
-            input.onchange = (e) => {
-              const file = (e.target as HTMLInputElement).files?.[0];
-              if (file) onUpload(file);
-            };
-            input.click();
-          }}
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 active:text-gray-200"
-        >
-          <Camera className="w-4 h-4" />
-          Take a photo instead
-        </button>
       </div>
     </div>
   );
