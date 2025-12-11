@@ -55,26 +55,36 @@ export async function uploadTileImages(
   files: File[],
   onProgress?: (progress: number) => void
 ): Promise<number> {
-  const formData = new FormData();
-  files.forEach(file => {
-    formData.append('images', file);
-  });
+  // OPTIMIZATION: Upload in batches of 30 to avoid memory overflow on server
+  const BATCH_SIZE = 30;
+  let totalUploaded = 0;
 
-  const response = await axios.post(
-    `${API_BASE}/session/${sessionId}/tiles`,
-    formData,
-    {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: (progressEvent) => {
-        if (onProgress && progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(progress);
+  for (let i = 0; i < files.length; i += BATCH_SIZE) {
+    const batch = files.slice(i, i + BATCH_SIZE);
+    const formData = new FormData();
+    batch.forEach(file => {
+      formData.append('images', file);
+    });
+
+    const response = await axios.post(
+      `${API_BASE}/session/${sessionId}/tiles`,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const batchProgress = progressEvent.loaded / progressEvent.total;
+            const overallProgress = Math.round(((i + batchProgress * batch.length) / files.length) * 100);
+            onProgress(overallProgress);
+          }
         }
       }
-    }
-  );
+    );
 
-  return response.data.totalTiles;
+    totalUploaded = response.data.totalTiles;
+  }
+
+  return totalUploaded;
 }
 
 export async function clearTiles(sessionId: string): Promise<void> {
