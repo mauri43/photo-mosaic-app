@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { AppState, Resolution, ColorMode } from '../types';
 import * as api from '../services/api';
 
@@ -33,6 +33,14 @@ const initialState: AppState = {
 export function useSession() {
   const [state, setState] = useState<AppState>(initialState);
 
+  // Store sessionId in a ref so cleanup can access it without stale closure
+  const sessionIdRef = useRef<string | null>(null);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    sessionIdRef.current = state.sessionId;
+  }, [state.sessionId]);
+
   // Initialize session on mount
   useEffect(() => {
     const initSession = async () => {
@@ -40,32 +48,16 @@ export function useSession() {
         const sessionId = await api.createSession();
         setState(prev => ({ ...prev, sessionId }));
       } catch (error) {
-        setState(prev => ({ ...prev, error: 'Failed to create session' }));
+        setState(prev => ({ ...prev, error: 'Failed to create session. Please refresh the page.' }));
       }
     };
 
     initSession();
 
-    // Cleanup on unmount or page unload
-    return () => {
-      if (state.sessionId) {
-        api.deleteSession(state.sessionId).catch(console.error);
-      }
-    };
+    // NOTE: We intentionally don't clean up sessions on unmount/page close
+    // This allows users to refresh the page without losing their data
+    // Sessions will be cleaned up by the server after 30 minutes of inactivity
   }, []);
-
-  // Handle page unload
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (state.sessionId) {
-        // Use sendBeacon for reliable cleanup
-        navigator.sendBeacon(`/api/session/${state.sessionId}`, '');
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [state.sessionId]);
 
   const uploadTarget = useCallback(async (file: File) => {
     if (!state.sessionId) return;

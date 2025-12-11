@@ -55,11 +55,11 @@ export async function uploadTileImages(
   files: File[],
   onProgress?: (progress: number) => void
 ): Promise<number> {
-  // OPTIMIZATION: Upload in smaller batches of 20 to avoid memory overflow and timeouts
-  const BATCH_SIZE = 20;
-  const MAX_RETRIES = 2;
+  // Upload in batches - larger batches are faster but use more memory
+  const BATCH_SIZE = 30;
+  const MAX_RETRIES = 3;
   let totalUploaded = 0;
-  let failedBatches = 0;
+  let consecutiveFailures = 0;
 
   for (let i = 0; i < files.length; i += BATCH_SIZE) {
     const batch = files.slice(i, i + BATCH_SIZE);
@@ -77,7 +77,7 @@ export async function uploadTileImages(
           formData,
           {
             headers: { 'Content-Type': 'multipart/form-data' },
-            timeout: 60000, // 60 second timeout per batch
+            timeout: 120000, // 2 minute timeout per batch (server processing takes time)
             onUploadProgress: (progressEvent) => {
               if (onProgress && progressEvent.total) {
                 const batchProgress = progressEvent.loaded / progressEvent.total;
@@ -90,25 +90,38 @@ export async function uploadTileImages(
 
         totalUploaded = response.data.totalTiles;
         success = true;
-      } catch (error) {
+        consecutiveFailures = 0; // Reset on success
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { status?: number; data?: { error?: string } } };
         console.warn(`Batch ${Math.floor(i / BATCH_SIZE) + 1} failed (attempt ${retry + 1}/${MAX_RETRIES + 1}):`, error);
-        // Wait before retry
+
+        // Check if session was lost (404 error)
+        if (axiosError.response?.status === 404) {
+          throw new Error('Session expired. Please refresh the page and try again.');
+        }
+
+        // Wait before retry with exponential backoff
         if (retry < MAX_RETRIES) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retry + 1)));
         }
       }
     }
 
     if (!success) {
-      failedBatches++;
+      consecutiveFailures++;
       console.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} failed after ${MAX_RETRIES + 1} attempts`);
-      // Continue with other batches instead of stopping entirely
+
+      // If we have 2 consecutive failures, stop and report what we have
+      if (consecutiveFailures >= 2) {
+        console.error('Too many consecutive failures, stopping upload');
+        break;
+      }
     }
   }
 
-  // If all batches failed, throw error
-  if (totalUploaded === 0 && failedBatches > 0) {
-    throw new Error('Failed to upload images. Please try again with fewer images or check your connection.');
+  // If nothing uploaded at all, throw error
+  if (totalUploaded === 0) {
+    throw new Error('Failed to upload images. The server may be restarting - please wait a moment and try again.');
   }
 
   return totalUploaded;
