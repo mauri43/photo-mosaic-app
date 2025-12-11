@@ -94,6 +94,7 @@ export async function generateMosaic(
     resolution: Resolution;
     useAllTiles?: boolean;
     exactTileCount?: number;
+    fourXDetail?: boolean;
   }
 ): Promise<DziMetadata> {
   const response = await axios.post(

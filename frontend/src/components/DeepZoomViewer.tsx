@@ -8,7 +8,8 @@ interface DeepZoomViewerProps {
   onReset?: () => void;
   allowDuplicates: boolean;
   allowTinting: boolean;
-  onRegenerateWithSettings?: (settings: { allowDuplicates: boolean; allowTinting: boolean }) => void;
+  fourXDetail: boolean;
+  onRegenerateWithSettings?: (settings: { allowDuplicates: boolean; allowTinting: boolean; fourXDetail: boolean }) => void;
   isRegenerating?: boolean;
 }
 
@@ -18,6 +19,7 @@ export function DeepZoomViewer({
   onReset,
   allowDuplicates,
   allowTinting,
+  fourXDetail,
   onRegenerateWithSettings,
   isRegenerating
 }: DeepZoomViewerProps) {
@@ -28,10 +30,11 @@ export function DeepZoomViewer({
   const [showSettings, setShowSettings] = useState(false);
   const [pendingDuplicates, setPendingDuplicates] = useState(allowDuplicates);
   const [pendingTinting, setPendingTinting] = useState(allowTinting);
+  const [pendingFourXDetail, setPendingFourXDetail] = useState(fourXDetail);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Track if settings have changed
-  const settingsChanged = pendingDuplicates !== allowDuplicates || pendingTinting !== allowTinting;
+  const settingsChanged = pendingDuplicates !== allowDuplicates || pendingTinting !== allowTinting || pendingFourXDetail !== fourXDetail;
 
   useEffect(() => {
     if (!containerRef.current || !dziUrl) return;
@@ -147,8 +150,9 @@ export function DeepZoomViewer({
     setShowConfirmDialog(false);
     if (onRegenerateWithSettings) {
       onRegenerateWithSettings({
-        allowDuplicates: pendingDuplicates,
-        allowTinting: pendingTinting
+        allowDuplicates: pendingFourXDetail ? true : pendingDuplicates, // 4x detail forces duplicates
+        allowTinting: pendingTinting,
+        fourXDetail: pendingFourXDetail
       });
     }
   };
@@ -244,13 +248,14 @@ export function DeepZoomViewer({
           <h3 className="text-sm font-semibold text-white mb-3">Mosaic Settings</h3>
 
           <div className="space-y-3">
-            <label className="flex items-center justify-between cursor-pointer">
+            <label className={`flex items-center justify-between cursor-pointer ${pendingFourXDetail ? 'opacity-50' : ''}`}>
               <span className="text-sm text-gray-300">Allow Duplicate Tiles</span>
               <input
                 type="checkbox"
-                checked={pendingDuplicates}
+                checked={pendingFourXDetail ? true : pendingDuplicates}
                 onChange={(e) => setPendingDuplicates(e.target.checked)}
-                className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500"
+                disabled={pendingFourXDetail}
+                className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500 disabled:opacity-50"
               />
             </label>
 
@@ -261,6 +266,22 @@ export function DeepZoomViewer({
                 checked={pendingTinting}
                 onChange={(e) => setPendingTinting(e.target.checked)}
                 className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500"
+              />
+            </label>
+
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="text-sm text-purple-300">4x Detail Mode</span>
+                <p className="text-xs text-purple-400">Each tile becomes 4 sub-tiles</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={pendingFourXDetail}
+                onChange={(e) => {
+                  setPendingFourXDetail(e.target.checked);
+                  if (e.target.checked) setPendingDuplicates(true);
+                }}
+                className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-purple-500 focus:ring-purple-500"
               />
             </label>
 

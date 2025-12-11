@@ -57,6 +57,7 @@ export interface AppState {
   tilePreviews: string[];
   allowDuplicates: boolean;
   allowTinting: boolean;
+  fourXDetail: boolean; // Each tile becomes 4 sub-tiles for higher detail
   selectedResolution: Resolution;
   useAllTiles: boolean;
   isGenerating: boolean;

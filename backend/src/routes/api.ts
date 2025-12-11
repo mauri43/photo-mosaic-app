@@ -237,7 +237,8 @@ router.post('/session/:sessionId/generate', async (req: Request, res: Response) 
     const {
       resolution = 'medium',
       useAllTiles = false,
-      exactTileCount
+      exactTileCount,
+      fourXDetail = false
     } = req.body;
 
     const session = sessionStore.getSession(sessionId);
@@ -259,6 +260,9 @@ router.post('/session/:sessionId/generate', async (req: Request, res: Response) 
     const tileCount = session.tileImages.size;
     let logMessage = `Generating mosaic for session ${sessionId}`;
 
+    if (fourXDetail) {
+      logMessage += ` with 4x detail mode`;
+    }
     if (useAllTiles) {
       logMessage += ` using ALL ${tileCount} tiles`;
     } else if (exactTileCount) {
@@ -274,10 +278,11 @@ router.post('/session/:sessionId/generate', async (req: Request, res: Response) 
     // Generate the mosaic
     const mosaic = await generateMosaic(session, {
       resolution,
-      allowDuplicates: session.allowDuplicates,
+      allowDuplicates: fourXDetail ? true : session.allowDuplicates, // 4x detail forces duplicates
       allowTinting: session.allowTinting,
       useAllTiles,
-      exactTileCount
+      exactTileCount,
+      fourXDetail
     });
 
     session.mosaic = mosaic;

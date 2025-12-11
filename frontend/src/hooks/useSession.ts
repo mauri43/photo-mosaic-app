@@ -17,6 +17,7 @@ const initialState: AppState = {
   tilePreviews: [],
   allowDuplicates: true,
   allowTinting: false,
+  fourXDetail: false,
   selectedResolution: 'medium',
   useAllTiles: false,
   isGenerating: false,
@@ -184,15 +185,23 @@ export function useSession() {
   const updateSettings = useCallback(async (settings: {
     allowDuplicates?: boolean;
     allowTinting?: boolean;
+    fourXDetail?: boolean;
   }) => {
     if (!state.sessionId) return;
 
     try {
-      await api.updateSettings(state.sessionId, settings);
+      // fourXDetail is frontend-only, don't send to backend
+      const { fourXDetail, ...backendSettings } = settings;
+
+      if (Object.keys(backendSettings).length > 0) {
+        await api.updateSettings(state.sessionId, backendSettings);
+      }
 
       setState(prev => ({
         ...prev,
-        ...settings
+        ...settings,
+        // If enabling 4x detail, force duplicates on
+        allowDuplicates: settings.fourXDetail ? true : (settings.allowDuplicates ?? prev.allowDuplicates)
       }));
     } catch (error) {
       setState(prev => ({
@@ -201,6 +210,15 @@ export function useSession() {
       }));
     }
   }, [state.sessionId]);
+
+  const setFourXDetail = useCallback((enabled: boolean) => {
+    setState(prev => ({
+      ...prev,
+      fourXDetail: enabled,
+      // 4x detail requires duplicates
+      allowDuplicates: enabled ? true : prev.allowDuplicates
+    }));
+  }, []);
 
   const setResolution = useCallback((resolution: Resolution) => {
     setState(prev => ({ ...prev, selectedResolution: resolution }));
@@ -221,8 +239,10 @@ export function useSession() {
         resolution: Resolution;
         useAllTiles?: boolean;
         exactTileCount?: number;
+        fourXDetail?: boolean;
       } = {
-        resolution: state.selectedResolution
+        resolution: state.selectedResolution,
+        fourXDetail: state.fourXDetail
       };
 
       if (!state.manualMode) {
@@ -261,7 +281,7 @@ export function useSession() {
         error: message
       }));
     }
-  }, [state.sessionId, state.selectedResolution, state.manualMode, state.imageAnalysis, state.tileCount, state.useAllTiles]);
+  }, [state.sessionId, state.selectedResolution, state.manualMode, state.imageAnalysis, state.tileCount, state.useAllTiles, state.fourXDetail]);
 
   const getDziUrl = useCallback(() => {
     if (!state.sessionId) return '';
@@ -307,6 +327,7 @@ export function useSession() {
     updateSettings,
     setResolution,
     setUseAllTiles,
+    setFourXDetail,
     generateMosaic,
     getDziUrl,
     getDownloadUrl,

@@ -81,10 +81,18 @@ export async function generateMosaic(
     console.log(`Generating ${options.resolution} mosaic: ${grid.cols}x${grid.rows} grid (${grid.cols * grid.rows} tiles)`);
   }
 
+  // Apply 4x detail mode - double the grid dimensions
+  // Each original tile position becomes a 2x2 grid of 4 sub-tiles
+  if (options.fourXDetail) {
+    grid.cols *= 2;
+    grid.rows *= 2;
+    console.log(`4x Detail mode: expanded to ${grid.cols}x${grid.rows} grid (${grid.cols * grid.rows} tiles)`);
+  }
+
   const totalCellCount = grid.cols * grid.rows;
 
-  // Validate tile count
-  if (!options.allowDuplicates && tileCount < totalCellCount) {
+  // Validate tile count (4x detail always uses duplicates)
+  if (!options.allowDuplicates && !options.fourXDetail && tileCount < totalCellCount) {
     throw new Error(
       `Not enough unique tiles. Need ${totalCellCount} tiles but only have ${tileCount}. ` +
       `Enable duplicates or upload more tile images.`

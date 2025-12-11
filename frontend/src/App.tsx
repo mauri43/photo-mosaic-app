@@ -22,6 +22,7 @@ function App() {
     updateSettings,
     setResolution,
     setUseAllTiles,
+    setFourXDetail,
     generateMosaic,
     getDziUrl,
     getDownloadUrl,
@@ -46,9 +47,11 @@ function App() {
   const recommendedCount = getRecommendedCount();
 
   // Handle regenerating with new settings from the viewer
-  const handleRegenerateWithSettings = async (settings: { allowDuplicates: boolean; allowTinting: boolean }) => {
+  const handleRegenerateWithSettings = async (settings: { allowDuplicates: boolean; allowTinting: boolean; fourXDetail: boolean }) => {
     // Update settings first, then regenerate
     await updateSettings(settings);
+    // Also update fourXDetail state
+    setFourXDetail(settings.fourXDetail);
     generateMosaic();
   };
 
@@ -77,6 +80,7 @@ function App() {
             onReset={reset}
             allowDuplicates={state.allowDuplicates}
             allowTinting={state.allowTinting}
+            fourXDetail={state.fourXDetail}
             onRegenerateWithSettings={handleRegenerateWithSettings}
             isRegenerating={state.isGenerating}
           />
@@ -213,6 +217,7 @@ function App() {
                 <SettingsPanel
                   allowDuplicates={state.allowDuplicates}
                   allowTinting={state.allowTinting}
+                  fourXDetail={state.fourXDetail}
                   selectedResolution={state.selectedResolution}
                   requirements={state.manualMode ? state.requirements : null}
                   imageAnalysis={!state.manualMode ? state.imageAnalysis : null}
@@ -221,6 +226,7 @@ function App() {
                   manualMode={state.manualMode}
                   onDuplicatesChange={(value) => updateSettings({ allowDuplicates: value })}
                   onTintingChange={(value) => updateSettings({ allowTinting: value })}
+                  onFourXDetailChange={setFourXDetail}
                   onResolutionChange={setResolution}
                   onUseAllTilesChange={setUseAllTiles}
                 />
