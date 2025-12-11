@@ -1,10 +1,14 @@
 import sharp from 'sharp';
 import type { DziMetadata, SessionData } from '../types/index.js';
 
+// Configure Sharp for minimal memory
+sharp.cache(false);
+sharp.concurrency(1);
+
 const TILE_SIZE = 256;
 const TILE_OVERLAP = 1;
 
-// Generate DZI pyramid tiles in memory
+// OPTIMIZED: Only generate top few levels, rest on-demand
 export async function generateDziPyramid(
   session: SessionData,
   mosaicBuffer: Buffer
@@ -32,12 +36,14 @@ export async function generateDziPyramid(
   // Clear existing tiles
   session.dziTiles.clear();
 
-  // Generate tiles for each level
-  for (let level = maxLevel; level >= 0; level--) {
+  // OPTIMIZATION: Only pre-generate the top 3 zoom levels to save memory
+  const minPregenLevel = Math.max(0, maxLevel - 2);
+
+  for (let level = maxLevel; level >= minPregenLevel; level--) {
     await generateLevelTiles(session, mosaicBuffer, level, width, height, maxLevel);
   }
 
-  console.log(`DZI pyramid generated: ${session.dziTiles.size} tiles`);
+  console.log(`DZI pyramid generated: ${session.dziTiles.size} tiles (levels ${minPregenLevel}-${maxLevel})`);
 }
 
 async function generateLevelTiles(

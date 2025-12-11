@@ -7,18 +7,18 @@ import type {
   MosaicGenerationOptions
 } from '../types/index.js';
 import {
-  calculateRegionAverageColor,
+  
   resizeTile,
   applyTint
 } from './imageProcessor.js';
-import { deltaE2000 } from '../utils/colorUtils.js';
+import { deltaE2000, rgbToLab } from '../utils/colorUtils.js';
 
 // Configure Sharp for minimal memory usage on free tier
 sharp.cache(false); // Disable cache entirely
 sharp.concurrency(1); // Process one image at a time to reduce peak memory
 
 // Maximum output dimensions to prevent memory issues (reduced for free tier)
-const MAX_OUTPUT_DIMENSION = 1500; // Further reduced for 512MB limit
+const MAX_OUTPUT_DIMENSION = 1200; // Further reduced for 512MB limit
 
 interface TileAssignment {
   cell: GridCell;
@@ -186,6 +186,7 @@ function calculateGridFromResolution(
   return calculateGridFromTileCount(tileCount, aspectRatio);
 }
 
+// OPTIMIZED: Analyze all cells from a single downscaled image
 async function analyzeTargetCells(
   targetImage: Buffer,
   cols: number,
@@ -196,37 +197,54 @@ async function analyzeTargetCells(
   const cells: GridCell[] = [];
   const totalCells = cols * rows;
 
-  console.log(`Analyzing ${totalCells} cells...`);
+  console.log(`Analyzing ${totalCells} cells (optimized single-pass)...`);
 
-  // Process cells SEQUENTIALLY to minimize memory usage
-  for (let j = 0; j < totalCells; j++) {
-    const col = j % cols;
-    const row = Math.floor(j / cols);
-    const x = col * cellWidth;
-    const y = row * cellHeight;
+  const sampleWidth = cols * 10;
+  const sampleHeight = rows * 10;
 
-    const averageColor = await calculateRegionAverageColor(
-      targetImage,
-      x,
-      y,
-      Math.max(1, Math.floor(cellWidth)),
-      Math.max(1, Math.floor(cellHeight))
-    );
+  const { data, info } = await sharp(targetImage)
+    .resize(sampleWidth, sampleHeight, { fit: 'fill' })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
 
-    cells.push({
-      x,
-      y,
-      width: cellWidth,
-      height: cellHeight,
-      averageColor
-    });
+  const channels = info.channels;
 
-    // Log progress every 50 cells
-    if ((j + 1) % 50 === 0) {
-      console.log(`Analyzed ${j + 1}/${totalCells} cells`);
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      let totalR = 0, totalG = 0, totalB = 0;
+      let pixelCount = 0;
+
+      for (let py = 0; py < 10; py++) {
+        for (let px = 0; px < 10; px++) {
+          const imgX = col * 10 + px;
+          const imgY = row * 10 + py;
+          const idx = (imgY * sampleWidth + imgX) * channels;
+
+          totalR += data[idx];
+          totalG += data[idx + 1];
+          totalB += data[idx + 2];
+          pixelCount++;
+        }
+      }
+
+      const averageColor = rgbToLab(totalR / pixelCount, totalG / pixelCount, totalB / pixelCount);
+
+      cells.push({
+        x: col * cellWidth,
+        y: row * cellHeight,
+        width: cellWidth,
+        height: cellHeight,
+        averageColor
+      });
+    }
+
+    if ((row + 1) % 20 === 0) {
+      console.log(`Analyzed ${(row + 1) * cols}/${totalCells} cells`);
     }
   }
 
+  console.log(`Cell analysis complete: ${cells.length} cells`);
   return cells;
 }
 

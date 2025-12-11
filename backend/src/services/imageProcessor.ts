@@ -3,6 +3,9 @@ import type { LabColor, TileImage, ResolutionRequirements } from '../types/index
 import { rgbToLab } from '../utils/colorUtils.js';
 import { v4 as uuidv4 } from 'uuid';
 
+// Configure Sharp for minimal memory usage
+sharp.cache(false);
+sharp.concurrency(1);
 // Normalize image buffer - convert HEIC/HEIF and rotate based on EXIF
 async function normalizeImage(imageBuffer: Buffer): Promise<Buffer> {
   try {
@@ -54,16 +57,16 @@ export async function processTileImage(imageBuffer: Buffer): Promise<TileImage> 
     // This keeps each tile under 3KB typically
     const processedBuffer = await sharp(imageBuffer)
       .rotate() // Auto-rotate based on EXIF
-      .resize(100, 100, { fit: 'cover' })
-      .jpeg({ quality: 60 })
+      .resize(64, 64, { fit: 'cover' })
+      .jpeg({ quality: 50 })
       .toBuffer();
 
     return {
       id: uuidv4(),
       buffer: processedBuffer,
       averageColor,
-      width: 100,
-      height: 100
+      width: 64,
+      height: 64
     };
   } catch (error) {
     console.error('Error processing tile image:', error);

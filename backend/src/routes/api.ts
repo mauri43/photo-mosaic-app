@@ -129,7 +129,7 @@ router.post('/session/:sessionId/dimensions', async (req: Request, res: Response
 });
 
 // Upload tile images - memory optimized for Render free tier (512MB)
-const MAX_TILES = 200; // Reduced limit for free tier
+const MAX_TILES = 150; // Reduced limit for free tier
 
 router.post('/session/:sessionId/tiles', upload.array('images', 200), async (req: Request, res: Response) => {
   try {
