@@ -54,7 +54,7 @@ export interface MosaicGenerationOptions {
     allowTinting: boolean;
     useAllTiles?: boolean;
     exactTileCount?: number;
-    fourXDetail?: boolean;
+    nineXDetail?: boolean;
 }
 export interface ImageAnalysis {
     width: number;

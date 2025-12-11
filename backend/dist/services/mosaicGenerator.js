@@ -55,16 +55,24 @@ async function generateMosaic(session, options) {
         grid = calculateGridFromResolution(session.targetWidth || targetWidth, session.targetHeight || targetHeight, options.resolution, aspectRatio);
         console.log(`Generating ${options.resolution} mosaic: ${grid.cols}x${grid.rows} grid (${grid.cols * grid.rows} tiles)`);
     }
-    // Apply 4x detail mode - double the grid dimensions
-    // Each original tile position becomes a 2x2 grid of 4 sub-tiles
-    if (options.fourXDetail) {
+    // Auto-apply 4x detail for low quality to improve appearance
+    // Low quality always gets 2x2 subdivision for better results
+    if (options.resolution === 'low') {
         grid.cols *= 2;
         grid.rows *= 2;
-        console.log(`4x Detail mode: expanded to ${grid.cols}x${grid.rows} grid (${grid.cols * grid.rows} tiles)`);
+        console.log(`Low quality auto-4x: expanded to ${grid.cols}x${grid.rows} grid (${grid.cols * grid.rows} tiles)`);
+    }
+    // Apply 9x detail mode - triple the grid dimensions
+    // Each original tile position becomes a 3x3 grid of 9 sub-tiles
+    if (options.nineXDetail) {
+        grid.cols *= 3;
+        grid.rows *= 3;
+        console.log(`9x Detail mode: expanded to ${grid.cols}x${grid.rows} grid (${grid.cols * grid.rows} tiles)`);
     }
     const totalCellCount = grid.cols * grid.rows;
-    // Validate tile count (4x detail always uses duplicates)
-    if (!options.allowDuplicates && !options.fourXDetail && tileCount < totalCellCount) {
+    // Validate tile count (detail modes always use duplicates)
+    const usesDetailMode = options.resolution === 'low' || options.nineXDetail;
+    if (!options.allowDuplicates && !usesDetailMode && tileCount < totalCellCount) {
         throw new Error(`Not enough unique tiles. Need ${totalCellCount} tiles but only have ${tileCount}. ` +
             `Enable duplicates or upload more tile images.`);
     }
@@ -257,7 +265,7 @@ async function compositeMosaic(assignments, width, height, cellWidth, cellHeight
             let tileBuffer = await (0, imageProcessor_js_1.resizeTile)(assignment.tile.buffer, cellWidth, cellHeight);
             // Apply tinting if enabled
             if (allowTinting) {
-                tileBuffer = await (0, imageProcessor_js_1.applyTint)(tileBuffer, assignment.cell.averageColor, assignment.tile.averageColor, 0.20);
+                tileBuffer = await (0, imageProcessor_js_1.applyTint)(tileBuffer, assignment.cell.averageColor, assignment.tile.averageColor, 0.45);
             }
             batchInputs.push({
                 input: tileBuffer,

@@ -17,7 +17,7 @@ const initialState: AppState = {
   tilePreviews: [],
   allowDuplicates: true,
   allowTinting: false,
-  fourXDetail: false,
+  nineXDetail: false,
   selectedResolution: 'medium',
   useAllTiles: false,
   isGenerating: false,
@@ -185,13 +185,13 @@ export function useSession() {
   const updateSettings = useCallback(async (settings: {
     allowDuplicates?: boolean;
     allowTinting?: boolean;
-    fourXDetail?: boolean;
+    nineXDetail?: boolean;
   }) => {
     if (!state.sessionId) return;
 
     try {
-      // fourXDetail is frontend-only, don't send to backend
-      const { fourXDetail, ...backendSettings } = settings;
+      // nineXDetail is frontend-only, don't send to backend
+      const { nineXDetail, ...backendSettings } = settings;
 
       if (Object.keys(backendSettings).length > 0) {
         await api.updateSettings(state.sessionId, backendSettings);
@@ -201,7 +201,7 @@ export function useSession() {
         ...prev,
         ...settings,
         // If enabling 4x detail, force duplicates on
-        allowDuplicates: settings.fourXDetail ? true : (settings.allowDuplicates ?? prev.allowDuplicates)
+        allowDuplicates: settings.nineXDetail ? true : (settings.allowDuplicates ?? prev.allowDuplicates)
       }));
     } catch (error) {
       setState(prev => ({
@@ -211,10 +211,10 @@ export function useSession() {
     }
   }, [state.sessionId]);
 
-  const setFourXDetail = useCallback((enabled: boolean) => {
+  const setNineXDetail = useCallback((enabled: boolean) => {
     setState(prev => ({
       ...prev,
-      fourXDetail: enabled,
+      nineXDetail: enabled,
       // 4x detail requires duplicates
       allowDuplicates: enabled ? true : prev.allowDuplicates
     }));
@@ -239,10 +239,10 @@ export function useSession() {
         resolution: Resolution;
         useAllTiles?: boolean;
         exactTileCount?: number;
-        fourXDetail?: boolean;
+        nineXDetail?: boolean;
       } = {
         resolution: state.selectedResolution,
-        fourXDetail: state.fourXDetail
+        nineXDetail: state.nineXDetail
       };
 
       if (!state.manualMode) {
@@ -281,7 +281,7 @@ export function useSession() {
         error: message
       }));
     }
-  }, [state.sessionId, state.selectedResolution, state.manualMode, state.imageAnalysis, state.tileCount, state.useAllTiles, state.fourXDetail]);
+  }, [state.sessionId, state.selectedResolution, state.manualMode, state.imageAnalysis, state.tileCount, state.useAllTiles, state.nineXDetail]);
 
   const getDziUrl = useCallback(() => {
     if (!state.sessionId) return '';
@@ -347,7 +347,7 @@ export function useSession() {
     updateSettings,
     setResolution,
     setUseAllTiles,
-    setFourXDetail,
+    setNineXDetail,
     generateMosaic,
     getDziUrl,
     getDownloadUrl,

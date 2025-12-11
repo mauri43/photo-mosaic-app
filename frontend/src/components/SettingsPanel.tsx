@@ -4,7 +4,7 @@ import type { Resolution, ResolutionRequirements, ImageAnalysis } from '../types
 interface SettingsPanelProps {
   allowDuplicates: boolean;
   allowTinting: boolean;
-  fourXDetail: boolean;
+  nineXDetail: boolean;
   selectedResolution: Resolution;
   requirements: ResolutionRequirements | null;
   imageAnalysis: ImageAnalysis | null;
@@ -13,7 +13,7 @@ interface SettingsPanelProps {
   manualMode: boolean;
   onDuplicatesChange: (value: boolean) => void;
   onTintingChange: (value: boolean) => void;
-  onFourXDetailChange: (value: boolean) => void;
+  onNineXDetailChange: (value: boolean) => void;
   onResolutionChange: (value: Resolution) => void;
   onUseAllTilesChange: (value: boolean) => void;
 }
@@ -21,7 +21,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({
   allowDuplicates,
   allowTinting,
-  fourXDetail,
+  nineXDetail,
   selectedResolution,
   requirements,
   imageAnalysis,
@@ -30,7 +30,7 @@ export function SettingsPanel({
   manualMode,
   onDuplicatesChange,
   onTintingChange,
-  onFourXDetailChange,
+  onNineXDetailChange,
   onResolutionChange,
   onUseAllTilesChange
 }: SettingsPanelProps) {
@@ -158,31 +158,31 @@ export function SettingsPanel({
           </button>
         </div>
 
-        {/* 4x Detail Mode */}
+        {/* 9x Detail Mode */}
         <div className="flex items-center justify-between p-3 bg-purple-900/30 border border-purple-700/50 rounded-lg">
           <div className="flex items-center gap-3">
             <Grid2X2 className="w-5 h-5 text-purple-400" />
             <div>
               <div className="text-sm font-medium text-purple-300">
-                4x Detail Mode
+                9x Detail Mode
               </div>
               <div className="text-xs text-purple-400">
-                Each tile becomes 4 sub-tiles for higher detail
-                {fourXDetail && <span className="text-purple-300"> (duplicates auto-enabled)</span>}
+                Each tile becomes 9 sub-tiles (3x3) for maximum detail
+                {nineXDetail && <span className="text-purple-300"> (duplicates auto-enabled)</span>}
               </div>
             </div>
           </div>
           <button
-            onClick={() => onFourXDetailChange(!fourXDetail)}
+            onClick={() => onNineXDetailChange(!nineXDetail)}
             className={`
               relative w-12 h-6 rounded-full transition-colors
-              ${fourXDetail ? 'bg-purple-500' : 'bg-gray-600'}
+              ${nineXDetail ? 'bg-purple-500' : 'bg-gray-600'}
             `}
           >
             <span
               className={`
                 absolute top-1 w-4 h-4 bg-white rounded-full transition-transform
-                ${fourXDetail ? 'translate-x-7' : 'translate-x-1'}
+                ${nineXDetail ? 'translate-x-7' : 'translate-x-1'}
               `}
             />
           </button>

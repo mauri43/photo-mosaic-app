@@ -22,7 +22,7 @@ function App() {
     updateSettings,
     setResolution,
     setUseAllTiles,
-    setFourXDetail,
+    setNineXDetail,
     generateMosaic,
     getDziUrl,
     getDownloadUrl,
@@ -48,11 +48,11 @@ function App() {
   const recommendedCount = getRecommendedCount();
 
   // Handle regenerating with new settings from the viewer
-  const handleRegenerateWithSettings = async (settings: { allowDuplicates: boolean; allowTinting: boolean; fourXDetail: boolean }) => {
+  const handleRegenerateWithSettings = async (settings: { allowDuplicates: boolean; allowTinting: boolean; nineXDetail: boolean }) => {
     // Update settings first, then regenerate
     await updateSettings(settings);
-    // Also update fourXDetail state
-    setFourXDetail(settings.fourXDetail);
+    // Also update nineXDetail state
+    setNineXDetail(settings.nineXDetail);
     generateMosaic();
   };
 
@@ -83,7 +83,7 @@ function App() {
             tileCount={state.tileCount}
             allowDuplicates={state.allowDuplicates}
             allowTinting={state.allowTinting}
-            fourXDetail={state.fourXDetail}
+            nineXDetail={state.nineXDetail}
             onRegenerateWithSettings={handleRegenerateWithSettings}
             isRegenerating={state.isGenerating}
           />
@@ -220,7 +220,7 @@ function App() {
                 <SettingsPanel
                   allowDuplicates={state.allowDuplicates}
                   allowTinting={state.allowTinting}
-                  fourXDetail={state.fourXDetail}
+                  nineXDetail={state.nineXDetail}
                   selectedResolution={state.selectedResolution}
                   requirements={state.manualMode ? state.requirements : null}
                   imageAnalysis={!state.manualMode ? state.imageAnalysis : null}
@@ -229,7 +229,7 @@ function App() {
                   manualMode={state.manualMode}
                   onDuplicatesChange={(value) => updateSettings({ allowDuplicates: value })}
                   onTintingChange={(value) => updateSettings({ allowTinting: value })}
-                  onFourXDetailChange={setFourXDetail}
+                  onNineXDetailChange={setNineXDetail}
                   onResolutionChange={setResolution}
                   onUseAllTilesChange={setUseAllTiles}
                 />

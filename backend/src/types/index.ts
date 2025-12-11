@@ -50,7 +50,7 @@ export interface MosaicGenerationOptions {
   allowTinting: boolean;
   useAllTiles?: boolean;      // Use all available tiles for max quality
   exactTileCount?: number;    // Use exact number of tiles (for auto mode)
-  fourXDetail?: boolean;      // Each tile becomes 4 sub-tiles for higher detail
+  nineXDetail?: boolean;      // Each tile becomes 9 sub-tiles (3x3) for even higher detail
 }
 
 export interface ImageAnalysis {

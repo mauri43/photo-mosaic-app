@@ -200,7 +200,7 @@ router.put('/session/:sessionId/settings', (req, res) => {
 router.post('/session/:sessionId/generate', async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const { resolution = 'medium', useAllTiles = false, exactTileCount, fourXDetail = false } = req.body;
+        const { resolution = 'medium', useAllTiles = false, exactTileCount, nineXDetail = false } = req.body;
         const session = sessionStore_js_1.sessionStore.getSession(sessionId);
         if (!session) {
             res.status(404).json({ error: 'Session not found' });
@@ -216,7 +216,7 @@ router.post('/session/:sessionId/generate', async (req, res) => {
         }
         const tileCount = session.tileImages.size;
         let logMessage = `Generating mosaic for session ${sessionId}`;
-        if (fourXDetail) {
+        if (nineXDetail) {
             logMessage += ` with 4x detail mode`;
         }
         if (useAllTiles) {
@@ -234,11 +234,11 @@ router.post('/session/:sessionId/generate', async (req, res) => {
         // Generate the mosaic
         const mosaic = await (0, mosaicGenerator_js_1.generateMosaic)(session, {
             resolution,
-            allowDuplicates: fourXDetail ? true : session.allowDuplicates, // 4x detail forces duplicates
+            allowDuplicates: nineXDetail ? true : session.allowDuplicates, // 4x detail forces duplicates
             allowTinting: session.allowTinting,
             useAllTiles,
             exactTileCount,
-            fourXDetail
+            nineXDetail
         });
         session.mosaic = mosaic;
         // Generate DZI pyramid for deep zoom
