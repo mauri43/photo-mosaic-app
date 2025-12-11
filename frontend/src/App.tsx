@@ -45,6 +45,13 @@ function App() {
 
   const recommendedCount = getRecommendedCount();
 
+  // Handle regenerating with new settings from the viewer
+  const handleRegenerateWithSettings = async (settings: { allowDuplicates: boolean; allowTinting: boolean }) => {
+    // Update settings first, then regenerate
+    await updateSettings(settings);
+    generateMosaic();
+  };
+
   // Show viewer if mosaic is generated
   if (state.hasMosaic && state.dziMetadata) {
     return (
@@ -68,6 +75,10 @@ function App() {
             dziUrl={getDziUrl()}
             downloadUrl={getDownloadUrl()}
             onReset={reset}
+            allowDuplicates={state.allowDuplicates}
+            allowTinting={state.allowTinting}
+            onRegenerateWithSettings={handleRegenerateWithSettings}
+            isRegenerating={state.isGenerating}
           />
         </main>
       </div>

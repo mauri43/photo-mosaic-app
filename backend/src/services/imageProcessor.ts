@@ -44,26 +44,26 @@ export async function calculateAverageColor(imageBuffer: Buffer): Promise<LabCol
   return rgbToLab(avgR, avgG, avgB);
 }
 
-// Process uploaded tile image - optimized for low memory usage
+// Process uploaded tile image - aggressively optimized for low memory usage
 export async function processTileImage(imageBuffer: Buffer): Promise<TileImage> {
   try {
     // Calculate average color from original (small sample)
     const averageColor = await calculateAverageColor(imageBuffer);
 
-    // Store as small thumbnail to save memory - we'll resize when compositing
-    // Max 200x200 with quality 70 drastically reduces memory
+    // Store as tiny thumbnail - 100x100 at quality 60
+    // This keeps each tile under 3KB typically
     const processedBuffer = await sharp(imageBuffer)
       .rotate() // Auto-rotate based on EXIF
-      .resize(200, 200, { fit: 'cover' })
-      .jpeg({ quality: 70 })
+      .resize(100, 100, { fit: 'cover' })
+      .jpeg({ quality: 60 })
       .toBuffer();
 
     return {
       id: uuidv4(),
       buffer: processedBuffer,
       averageColor,
-      width: 200,
-      height: 200
+      width: 100,
+      height: 100
     };
   } catch (error) {
     console.error('Error processing tile image:', error);

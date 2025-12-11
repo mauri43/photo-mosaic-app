@@ -13,12 +13,12 @@ import {
 } from './imageProcessor.js';
 import { deltaE2000 } from '../utils/colorUtils.js';
 
-// Configure Sharp for low memory usage
-sharp.cache({ memory: 50, files: 20, items: 100 });
+// Configure Sharp for minimal memory usage on free tier
+sharp.cache(false); // Disable cache entirely
 sharp.concurrency(1); // Process one image at a time to reduce peak memory
 
-// Maximum output dimensions to prevent memory issues
-const MAX_OUTPUT_DIMENSION = 4000;
+// Maximum output dimensions to prevent memory issues (reduced for free tier)
+const MAX_OUTPUT_DIMENSION = 2500;
 
 interface TileAssignment {
   cell: GridCell;

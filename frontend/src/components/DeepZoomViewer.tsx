@@ -1,18 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
 import OpenSeadragon from 'openseadragon';
-import { ZoomIn, ZoomOut, Maximize2, RotateCcw, Download, Loader2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, RotateCcw, Download, Loader2, Settings, RefreshCw } from 'lucide-react';
 
 interface DeepZoomViewerProps {
   dziUrl: string;
   downloadUrl: string;
   onReset?: () => void;
+  allowDuplicates: boolean;
+  allowTinting: boolean;
+  onRegenerateWithSettings?: (settings: { allowDuplicates: boolean; allowTinting: boolean }) => void;
+  isRegenerating?: boolean;
 }
 
-export function DeepZoomViewer({ dziUrl, downloadUrl, onReset }: DeepZoomViewerProps) {
+export function DeepZoomViewer({
+  dziUrl,
+  downloadUrl,
+  onReset,
+  allowDuplicates,
+  allowTinting,
+  onRegenerateWithSettings,
+  isRegenerating
+}: DeepZoomViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<OpenSeadragon.Viewer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
+  const [pendingDuplicates, setPendingDuplicates] = useState(allowDuplicates);
+  const [pendingTinting, setPendingTinting] = useState(allowTinting);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  // Track if settings have changed
+  const settingsChanged = pendingDuplicates !== allowDuplicates || pendingTinting !== allowTinting;
 
   useEffect(() => {
     if (!containerRef.current || !dziUrl) return;
@@ -118,14 +137,58 @@ export function DeepZoomViewer({ dziUrl, downloadUrl, onReset }: DeepZoomViewerP
     document.body.removeChild(link);
   };
 
+  const handleRegenerateClick = () => {
+    if (settingsChanged) {
+      setShowConfirmDialog(true);
+    }
+  };
+
+  const handleConfirmRegenerate = () => {
+    setShowConfirmDialog(false);
+    if (onRegenerateWithSettings) {
+      onRegenerateWithSettings({
+        allowDuplicates: pendingDuplicates,
+        allowTinting: pendingTinting
+      });
+    }
+  };
+
   return (
     <div className="relative w-full h-full min-h-[500px] bg-gray-900 rounded-lg overflow-hidden">
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
+      {/* Loading/Regenerating overlay */}
+      {(isLoading || isRegenerating) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-30">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
-            <p className="text-gray-400">Loading mosaic...</p>
+            <p className="text-gray-400">
+              {isRegenerating ? 'Regenerating mosaic...' : 'Loading mosaic...'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-40">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+            <h3 className="text-lg font-semibold text-white mb-2">Regenerate Mosaic?</h3>
+            <p className="text-gray-400 mb-4">
+              Are you sure you want to generate a new mosaic? Your current mosaic will be lost.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowConfirmDialog(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmRegenerate}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors"
+              >
+                Yes, Regenerate
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -163,7 +226,57 @@ export function DeepZoomViewer({ dziUrl, downloadUrl, onReset }: DeepZoomViewerP
         >
           <Maximize2 className="w-5 h-5" />
         </button>
+        <div className="w-full h-px bg-gray-600 my-1" />
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className={`p-2 rounded-lg text-white transition-colors ${
+            showSettings ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-800/90 hover:bg-gray-700'
+          }`}
+          title="Settings"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
       </div>
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="absolute top-4 left-16 bg-gray-800/95 rounded-lg p-4 z-20 min-w-[250px] shadow-xl">
+          <h3 className="text-sm font-semibold text-white mb-3">Mosaic Settings</h3>
+
+          <div className="space-y-3">
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-sm text-gray-300">Allow Duplicate Tiles</span>
+              <input
+                type="checkbox"
+                checked={pendingDuplicates}
+                onChange={(e) => setPendingDuplicates(e.target.checked)}
+                className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500"
+              />
+            </label>
+
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-sm text-gray-300">Color Tinting</span>
+              <input
+                type="checkbox"
+                checked={pendingTinting}
+                onChange={(e) => setPendingTinting(e.target.checked)}
+                className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500"
+              />
+            </label>
+
+            {settingsChanged && (
+              <button
+                onClick={handleRegenerateClick}
+                disabled={isRegenerating}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 rounded-lg text-white text-sm font-medium transition-colors mt-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Apply & Regenerate
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Zoom indicator */}
       <div className="absolute top-4 right-4 bg-gray-800/90 rounded-lg px-3 py-1 text-sm text-gray-300 z-20">

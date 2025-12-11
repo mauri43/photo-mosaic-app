@@ -12,12 +12,12 @@ import { analyzeImage } from '../services/imageAnalyzer.js';
 
 const router = Router();
 
-// Configure multer for memory storage
+// Configure multer for memory storage - optimized for free tier
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit per file
-    files: 1000 // Max 1000 files per upload
+    fileSize: 10 * 1024 * 1024, // 10MB limit per file (reduced from 50MB)
+    files: 200 // Max 200 files per upload
   }
 });
 
@@ -128,10 +128,10 @@ router.post('/session/:sessionId/dimensions', async (req: Request, res: Response
   }
 });
 
-// Upload tile images - memory optimized
-const MAX_TILES = 500; // Limit total tiles to prevent memory issues
+// Upload tile images - memory optimized for Render free tier (512MB)
+const MAX_TILES = 200; // Reduced limit for free tier
 
-router.post('/session/:sessionId/tiles', upload.array('images', 500), async (req: Request, res: Response) => {
+router.post('/session/:sessionId/tiles', upload.array('images', 200), async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     const session = sessionStore.getSession(sessionId);
