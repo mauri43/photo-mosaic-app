@@ -9,25 +9,16 @@ const api_js_1 = __importDefault(require("./routes/api.js"));
 const sessionStore_js_1 = require("./services/sessionStore.js");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
-// Middleware
-// Allow CORS from localhost and production Vercel domain
-const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://photo-mosaic-app-sigma.vercel.app'
-];
+// Middleware - Allow CORS from localhost and ALL Vercel deployments
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin)
             return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
+        if (origin.includes('localhost') || origin.includes('vercel.app')) {
+            return callback(null, true);
         }
-        else {
-            console.log('CORS blocked origin:', origin);
-            callback(new Error('Not allowed by CORS'));
-        }
+        console.log('CORS blocked origin:', origin);
+        callback(new Error('Not allowed by CORS'));
     },
     credentials: true
 }));
