@@ -1,5 +1,5 @@
 import { Copy, Paintbrush, Maximize, Grid2X2 } from 'lucide-react';
-import type { Resolution, ResolutionRequirements, ImageAnalysis } from '../types';
+import type { Resolution, ResolutionRequirements, ImageAnalysis, ColorMode } from '../types';
 
 interface SettingsPanelProps {
   allowDuplicates: boolean;
@@ -16,6 +16,14 @@ interface SettingsPanelProps {
   onNineXDetailChange: (value: boolean) => void;
   onResolutionChange: (value: Resolution) => void;
   onUseAllTilesChange: (value: boolean) => void;
+  tintPercentage: number;
+  tileSize: number;
+  maxRepeatsPerTile: number;
+  colorMode: ColorMode;
+  onTintPercentageChange: (value: number) => void;
+  onTileSizeChange: (value: number) => void;
+  onMaxRepeatsChange: (value: number) => void;
+  onColorModeChange: (mode: ColorMode) => void;
 }
 
 export function SettingsPanel({
@@ -32,7 +40,15 @@ export function SettingsPanel({
   onTintingChange,
   onNineXDetailChange,
   onResolutionChange,
-  onUseAllTilesChange
+  onUseAllTilesChange,
+  tintPercentage,
+  tileSize,
+  maxRepeatsPerTile,
+  colorMode,
+  onTintPercentageChange,
+  onTileSizeChange,
+  onMaxRepeatsChange,
+  onColorModeChange
 }: SettingsPanelProps) {
   const getRequiredCount = (resolution: Resolution): number => {
     if (manualMode && requirements) {
@@ -78,7 +94,7 @@ export function SettingsPanel({
                   }
                 `}
               >
-                <div className="font-medium capitalize">{res}</div>
+                <div className="font-medium">{res === 'low' ? 'Low' : res === 'medium' ? 'Standard' : 'High'}</div>
                 <div className="text-xs mt-1 opacity-70">
                   {count} tiles {manualMode ? 'required' : 'recommended'}
                 </div>
@@ -156,6 +172,73 @@ export function SettingsPanel({
               `}
             />
           </button>
+        </div>
+
+
+        {/* Tint Percentage Slider - shown when tinting enabled */}
+        {allowTinting && (
+          <div className="p-3 bg-gray-800/50 rounded-lg">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-gray-300">Tinting Intensity</span>
+              <span className="text-sm font-mono text-blue-400">{tintPercentage}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={tintPercentage}
+              onChange={(e) => onTintPercentageChange(Number(e.target.value))}
+              className="w-full"
+            />
+          </div>
+        )}
+
+        {/* Max Repeats Slider - shown when duplicates enabled */}
+        {allowDuplicates && (
+          <div className="p-3 bg-gray-800/50 rounded-lg">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-gray-300">Max Repeats per Tile</span>
+              <span className="text-sm font-mono text-blue-400">{maxRepeatsPerTile}x</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="20"
+              value={maxRepeatsPerTile}
+              onChange={(e) => onMaxRepeatsChange(Number(e.target.value))}
+              className="w-full"
+            />
+          </div>
+        )}
+
+        {/* Tile Size Slider */}
+        <div className="p-3 bg-gray-800/50 rounded-lg">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-300">Tile Size</span>
+            <span className="text-sm font-mono text-blue-400">{tileSize}px</span>
+          </div>
+          <input
+            type="range"
+            min="8"
+            max="32"
+            value={tileSize}
+            onChange={(e) => onTileSizeChange(Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+
+        {/* Color Mode Select */}
+        <div className="p-3 bg-gray-800/50 rounded-lg">
+          <label className="text-sm text-gray-300 block mb-2">Color Mode</label>
+          <select
+            value={colorMode}
+            onChange={(e) => onColorModeChange(e.target.value as 'blend' | 'vibrant' | 'muted')}
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200"
+          >
+            <option value="blend">Blend with Target</option>
+            <option value="vibrant">Vibrant</option>
+            <option value="muted">Muted</option>
+          </select>
         </div>
 
         {/* 9x Detail Mode */}

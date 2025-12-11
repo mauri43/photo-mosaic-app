@@ -178,7 +178,7 @@ router.delete('/session/:sessionId/tiles', (req, res) => {
 // Update settings
 router.put('/session/:sessionId/settings', (req, res) => {
     const { sessionId } = req.params;
-    const { allowDuplicates, allowTinting } = req.body;
+    const { allowDuplicates, allowTinting, tintPercentage, maxRepeatsPerTile, colorMode } = req.body;
     const session = sessionStore_js_1.sessionStore.getSession(sessionId);
     if (!session) {
         res.status(404).json({ error: 'Session not found' });
@@ -190,6 +190,15 @@ router.put('/session/:sessionId/settings', (req, res) => {
     if (typeof allowTinting === 'boolean') {
         session.allowTinting = allowTinting;
     }
+    if (typeof tintPercentage === 'number') {
+        session.tintPercentage = tintPercentage;
+    }
+    if (typeof maxRepeatsPerTile === 'number') {
+        session.maxRepeatsPerTile = maxRepeatsPerTile;
+    }
+    if (colorMode && ['blend', 'vibrant', 'muted'].includes(colorMode)) {
+        session.colorMode = colorMode;
+    }
     res.json({
         success: true,
         allowDuplicates: session.allowDuplicates,
@@ -200,7 +209,7 @@ router.put('/session/:sessionId/settings', (req, res) => {
 router.post('/session/:sessionId/generate', async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const { resolution = 'medium', useAllTiles = false, exactTileCount, nineXDetail = false } = req.body;
+        const { resolution = 'medium', useAllTiles = false, exactTileCount, nineXDetail = false, tintPercentage, tileSize, maxRepeatsPerTile, colorMode } = req.body;
         const session = sessionStore_js_1.sessionStore.getSession(sessionId);
         if (!session) {
             res.status(404).json({ error: 'Session not found' });
@@ -238,7 +247,11 @@ router.post('/session/:sessionId/generate', async (req, res) => {
             allowTinting: session.allowTinting,
             useAllTiles,
             exactTileCount,
-            nineXDetail
+            nineXDetail,
+            tintPercentage: tintPercentage || session.tintPercentage,
+            tileSize,
+            maxRepeatsPerTile: maxRepeatsPerTile || session.maxRepeatsPerTile,
+            colorMode: colorMode || session.colorMode
         });
         session.mosaic = mosaic;
         // Generate DZI pyramid for deep zoom

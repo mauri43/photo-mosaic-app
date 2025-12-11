@@ -41,6 +41,7 @@ export interface SessionStatus {
 }
 
 export type Resolution = 'low' | 'medium' | 'high';
+export type ColorMode = 'blend' | 'vibrant' | 'muted';
 
 export interface AppState {
   sessionId: string | null;
@@ -57,7 +58,11 @@ export interface AppState {
   tilePreviews: string[];
   allowDuplicates: boolean;
   allowTinting: boolean;
-  nineXDetail: boolean; // Each tile becomes 4 sub-tiles for higher detail
+  tintPercentage: number;
+  tileSize: number;
+  maxRepeatsPerTile: number;
+  colorMode: ColorMode;
+  nineXDetail: boolean;
   selectedResolution: Resolution;
   useAllTiles: boolean;
   isGenerating: boolean;

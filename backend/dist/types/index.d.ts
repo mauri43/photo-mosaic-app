@@ -18,6 +18,9 @@ export interface SessionData {
     tileImages: Map<string, TileImage>;
     allowDuplicates: boolean;
     allowTinting: boolean;
+    tintPercentage: number;
+    maxRepeatsPerTile: number;
+    colorMode: 'blend' | 'vibrant' | 'muted';
     mosaic: Buffer | null;
     dziTiles: Map<string, Buffer>;
     dziMetadata: DziMetadata | null;
@@ -52,9 +55,13 @@ export interface MosaicGenerationOptions {
     resolution: 'low' | 'medium' | 'high';
     allowDuplicates: boolean;
     allowTinting: boolean;
+    tintPercentage?: number;
+    maxRepeatsPerTile?: number;
+    colorMode?: 'blend' | 'vibrant' | 'muted';
     useAllTiles?: boolean;
     exactTileCount?: number;
     nineXDetail?: boolean;
+    tileSize?: number;
 }
 export interface ImageAnalysis {
     width: number;

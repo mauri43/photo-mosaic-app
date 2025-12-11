@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Mosaic Generator - Futuristic Dark Glass Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-deep: #020617;
+            --bg-glass: rgba(15, 23, 42, 0.8);
+            --bg-glass-light: rgba(30, 41, 59, 0.6);
+            --accent-cyan: #38bdf8;
+            --accent-purple: #a855f7;
+            --accent-green: #22c55e;
+            --accent-orange: #f97316;
+            --text-primary: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --border-glass: rgba(148, 163, 184, 0.15);
+            --border-accent: rgba(56, 189, 248, 0.12);
+            --glow-cyan: rgba(56, 189, 248, 0.6);
+            --glow-purple: rgba(168, 85, 247, 0.4);
+            --shadow-deep: rgba(15, 23, 42, 0.85);
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --radius-pill: 999px;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 50% at 80% 90%, rgba(168, 85, 247, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            z-index: 1000;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .nav-logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .nav-logo span {
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-steps {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .nav-step.active {
+            background: var(--bg-glass-light);
+            color: var(--accent-cyan);
+            border: 1px solid var(--border-accent);
+        }
+
+        .nav-step.completed {
+            color: var(--accent-green);
+        }
+
+        .nav-step-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .nav-step-divider {
+            width: 24px;
+            height: 1px;
+            background: var(--border-glass);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            background: var(--bg-glass-light);
+            border: 1px solid var(--border-glass);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--border-accent);
+            transform: translateY(-1px);
+        }
+
+        .nav-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Main Layout */
+        .main {
+            display: flex;
+            min-height: 100vh;
+            padding-top: 64px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Control Panel */
+        .panel {
+            width: 420px;
+            min-width: 420px;
+            height: calc(100vh - 64px);
+            overflow-y: auto;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-glass);
+            padding: 32px;
+        }
+
+        .panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .panel::-webkit-scrollbar-thumb {
+            background: var(--border-glass);
+            border-radius: 3px;
+        }
+
+        .panel-section {
+            margin-bottom: 40px;
+        }
+
+        .panel-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .section-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--bg-deep);
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Dropzone */
+        .dropzone {
+            border: 2px dashed var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 40px 24px;
+            text-align: center;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(2, 6, 23, 0.6) 100%);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dropzone::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, var(--accent-cyan), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .dropzone:hover,
+        .dropzone.drag-over {
+            border-color: var(--accent-cyan);
+            box-shadow: inset 0 0 40px rgba(56, 189, 248, 0.1);
+        }
+
+        .dropzone:hover::before,
+        .dropzone.drag-over::before {
+            opacity: 0.05;
+        }
+
+        .dropzone-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            color: var(--accent-cyan);
+            transition: transform 0.3s ease;
+        }
+
+        .dropzone:hover .dropzone-icon,
+        .dropzone.drag-over .dropzone-icon {
+            transform: translateY(-4px) scale(1.05);
+        }
+
+        .dropzone-text {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .dropzone-hint {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Uploaded Preview */
+        .uploaded-preview {
+            background: var(--bg-glass-light);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            border: 1px solid var(--border-glass);
+            display: none;
+        }
+
+        .uploaded-preview.visible {
+            display: block;
+        }
+
+        .uploaded-image-container {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .uploaded-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-md);
+            object-fit: cover;
+            border: 1px solid var(--border-glass);
+        }
+
+        .uploaded-info {
+            flex: 1;
+        }
+
+        .uploaded-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .uploaded-meta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .uploaded-actions {
+            margin-top: 12px;
+        }
+
+        /* Tile Grid */
+        .tile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 16px;
+            background: var(--bg-glass-light);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-glass);
+            margin-top: 16px;
+        }
+
+        .tile-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .tile-grid::-webkit-scrollbar-thumb {
+            background: var(--border-glass);
+            border-radius: 2px;
+        }
+
+        .tile-item {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-glass);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .tile-item:hover {
+            border-color: var(--accent-cyan);
+            transform: scale(1.05);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+        }
+
+        .tile-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .tile-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: var(--radius-pill);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--bg-deep);
+            margin-top: 12px;
+        }
+
+        /* Controls */
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-label .tooltip-trigger {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--border-glass);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            cursor: help;
+            position: relative;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            font-size: 0.75rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+
+        .tooltip-trigger:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Segmented Control */
+        .segmented {
+            display: flex;
+            background: var(--bg-glass-light);
+            border-radius: var(--radius-md);
+            padding: 4px;
+            border: 1px solid var(--border-glass);
+        }
+
+        .segmented-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .segmented-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .segmented-btn.active {
+            background: var(--bg-deep);
+            color: var(--accent-cyan);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Slider */
+        .slider-container {
+            position: relative;
+        }
+
+        .slider-value {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            padding: 2px 8px;
+            background: var(--bg-glass-light);
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-accent);
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--bg-glass-light);
+            border-radius: 3px;
+            outline: none;
+            margin-top: 32px;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            cursor: pointer;
+            box-shadow: 0 0 12px var(--glow-cyan);
+            transition: transform 0.2s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 12px var(--glow-cyan);
+        }
+
+        /* Toggle */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-glass-light);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            margin-bottom: 12px;
+        }
+
+        .toggle-text {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        .toggle {
+            width: 44px;
+            height: 24px;
+            background: var(--bg-deep);
+            border-radius: var(--radius-pill);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border: 1px solid var(--border-glass);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            transition: all 0.25s ease;
+        }
+
+        .toggle.active {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-color: transparent;
+        }
+
+        .toggle.active::after {
+            left: 23px;
+            background: white;
+        }
+
+        /* Checkbox */
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            border: 2px solid var(--border-glass);
+            background: var(--bg-glass-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox.checked {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-color: transparent;
+        }
+
+        .checkbox svg {
+            width: 12px;
+            height: 12px;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .checkbox.checked svg {
+            opacity: 1;
+        }
+
+        .checkbox-text {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: var(--radius-pill);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: var(--bg-deep);
+            box-shadow: 0 0 24px var(--glow-cyan);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02) translateY(-1px);
+            box-shadow: 0 0 32px var(--glow-cyan), 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-glass-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border-glass);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--accent-cyan);
+            padding: 8px 16px;
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg-glass-light);
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        /* Progress */
+        .progress-container {
+            display: none;
+            margin-top: 24px;
+        }
+
+        .progress-container.visible {
+            display: block;
+        }
+
+        .progress-bar-bg {
+            height: 8px;
+            background: var(--bg-glass-light);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple), var(--accent-cyan));
+            background-size: 200% 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .progress-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .progress-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-glass);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-summary {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-glass-light);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        .progress-summary.visible {
+            display: block;
+        }
+
+        /* Select */
+        .export-select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-glass-light);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .export-select:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        /* Viewer */
+        .viewer {
+            flex: 1;
+            height: calc(100vh - 64px);
+            background: var(--bg-deep);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .viewer-canvas {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .viewer-placeholder {
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .viewer-placeholder svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .viewer-placeholder-text {
+            font-size: 0.9rem;
+        }
+
+        .mosaic-preview {
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .mosaic-preview.visible {
+            display: flex;
+        }
+
+        .mosaic-image {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+            cursor: grab;
+        }
+
+        .mosaic-image:active {
+            cursor: grabbing;
+        }
+
+        /* Viewer Controls */
+        .viewer-controls-top {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            right: 24px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+
+        .viewer-controls-top > * {
+            pointer-events: auto;
+        }
+
+        .zoom-label {
+            padding: 8px 16px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-glass);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+        }
+
+        .viewer-btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .viewer-btn {
+            padding: 8px 12px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .viewer-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--border-accent);
+        }
+
+        .viewer-btn.active {
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+        }
+
+        .viewer-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .viewer-controls-bottom {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .zoom-controls {
+            display: flex;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            overflow: hidden;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .zoom-btn:hover {
+            background: var(--bg-glass-light);
+            color: var(--text-primary);
+        }
+
+        .zoom-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .zoom-divider {
+            width: 1px;
+            background: var(--border-glass);
+        }
+
+        /* Minimap */
+        .minimap {
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+            width: 160px;
+            height: 100px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            overflow: hidden;
+            display: none;
+        }
+
+        .minimap.visible {
+            display: block;
+        }
+
+        .minimap-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0.7;
+        }
+
+        .minimap-viewport {
+            position: absolute;
+            border: 2px solid var(--accent-cyan);
+            background: rgba(56, 189, 248, 0.1);
+            pointer-events: none;
+            transition: all 0.1s ease;
+        }
+
+        /* Tile Tooltip */
+        .tile-tooltip {
+            position: absolute;
+            padding: 12px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            display: none;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .tile-tooltip.visible {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .tile-tooltip-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .tile-tooltip-name {
+            font-size: 0.8rem;
+            color: var(--text-primary);
+        }
+
+        /* Export Panel */
+        .export-panel {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-glass);
+            padding: 24px;
+            position: absolute;
+            bottom: 90px;
+            right: 24px;
+            width: 300px;
+            display: none;
+        }
+
+        .export-panel.visible {
+            display: block;
+        }
+
+        .export-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .export-option {
+            margin-bottom: 16px;
+        }
+
+        .export-option label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .export-format {
+            display: flex;
+            gap: 8px;
+        }
+
+        .format-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-glass-light);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .format-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .format-btn.active {
+            background: var(--bg-deep);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* History Strip */
+        .history-strip {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: linear-gradient(180deg, transparent 0%, var(--bg-glass) 30%);
+            padding: 20px 24px;
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+        }
+
+        .history-strip::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .history-strip::-webkit-scrollbar-thumb {
+            background: var(--border-glass);
+            border-radius: 2px;
+        }
+
+        .history-card {
+            flex-shrink: 0;
+            width: 140px;
+            height: 60px;
+            background: var(--bg-glass-light);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .history-card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+        }
+
+        .history-card-title {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-card-meta {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 110px;
+            left: 24px;
+            right: 340px;
+        }
+
+        .tip-container {
+            padding: 12px 16px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tip-icon {
+            color: var(--accent-purple);
+        }
+
+        .tip-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .tip-text strong {
+            color: var(--text-primary);
+        }
+
+        .tip-link {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            margin-left: 8px;
+        }
+
+        .tip-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .nav-steps {
+                display: none;
+            }
+
+            .main {
+                flex-direction: column;
+            }
+
+            .panel {
+                width: 100%;
+                min-width: 100%;
+                height: auto;
+                max-height: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border-glass);
+            }
+
+            .viewer {
+                height: 60vh;
+            }
+
+            .history-strip {
+                position: relative;
+            }
+
+            .footer {
+                display: none;
+            }
+
+            .export-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            }
+        }
+
+        /* Mobile Bottom Bar */
+        .mobile-bar {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 24px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-glass);
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-bar {
+                display: block;
+            }
+
+            .panel {
+                padding-bottom: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-logo">
+            <svg viewBox="0 0 32 32" fill="none">
+                <rect x="2" y="2" width="12" height="12" rx="2" fill="url(#grad1)"/>
+                <rect x="18" y="2" width="12" height="12" rx="2" fill="url(#grad1)" opacity="0.7"/>
+                <rect x="2" y="18" width="12" height="12" rx="2" fill="url(#grad1)" opacity="0.5"/>
+                <rect x="18" y="18" width="12" height="12" rx="2" fill="url(#grad1)" opacity="0.3"/>
+                <defs>
+                    <linearGradient id="grad1" x1="0" y1="0" x2="32" y2="32">
+                        <stop offset="0%" stop-color="#38bdf8"/>
+                        <stop offset="100%" stop-color="#a855f7"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <span>Photo Mosaic Generator</span>
+        </div>
+
+        <div class="nav-steps">
+            <div class="nav-step active" data-step="1">
+                <span class="nav-step-dot"></span>
+                Upload Target
+            </div>
+            <div class="nav-step-divider"></div>
+            <div class="nav-step" data-step="2">
+                <span class="nav-step-dot"></span>
+                Tile Library
+            </div>
+            <div class="nav-step-divider"></div>
+            <div class="nav-step" data-step="3">
+                <span class="nav-step-dot"></span>
+                Settings
+            </div>
+            <div class="nav-step-divider"></div>
+            <div class="nav-step" data-step="4">
+                <span class="nav-step-dot"></span>
+                Generate
+            </div>
+        </div>
+
+        <div class="nav-actions">
+            <button class="nav-btn" title="Help">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9 9a3 3 0 0 1 6 0c0 2-3 3-3 3"/>
+                    <circle cx="12" cy="17" r="0.5" fill="currentColor"/>
+                </svg>
+            </button>
+            <button class="nav-btn theme-toggle" title="Toggle theme">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Control Panel -->
+        <aside class="panel">
+            <!-- Step 1: Target Image -->
+            <section class="panel-section">
+                <div class="section-header">
+                    <span class="section-number">1</span>
+                    <h2 class="section-title">Target Image</h2>
+                </div>
+
+                <div class="dropzone" id="targetDropzone">
+                    <svg class="dropzone-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="10" width="36" height="28" rx="4"/>
+                        <circle cx="18" cy="22" r="4"/>
+                        <path d="M42 30l-10-8-8 6-6-4-12 10"/>
+                    </svg>
+                    <p class="dropzone-text">Upload Target Image</p>
+                    <p class="dropzone-hint">Drag & drop or click to browse</p>
+                </div>
+
+                <div class="uploaded-preview" id="targetPreview">
+                    <div class="uploaded-image-container">
+                        <img src="" alt="Target preview" class="uploaded-thumb" id="targetThumb">
+                        <div class="uploaded-info">
+                            <p class="uploaded-name" id="targetName">image.jpg</p>
+                            <p class="uploaded-meta" id="targetMeta">3840 x 2160 px</p>
+                        </div>
+                    </div>
+                    <div class="uploaded-actions">
+                        <button class="btn btn-ghost btn-sm" id="replaceTarget">Replace image</button>
+                    </div>
+                </div>
+
+                <p class="dropzone-hint" style="margin-top: 12px; font-size: 0.75rem;">
+                    Best results with high-resolution images
+                </p>
+            </section>
+
+            <!-- Step 2: Tile Library -->
+            <section class="panel-section">
+                <div class="section-header">
+                    <span class="section-number">2</span>
+                    <h2 class="section-title">Tile Library</h2>
+                </div>
+
+                <div class="dropzone" id="tilesDropzone">
+                    <svg class="dropzone-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="4" y="4" width="16" height="16" rx="2"/>
+                        <rect x="28" y="4" width="16" height="16" rx="2"/>
+                        <rect x="4" y="28" width="16" height="16" rx="2"/>
+                        <rect x="28" y="28" width="16" height="16" rx="2"/>
+                    </svg>
+                    <p class="dropzone-text">Upload Tile Images</p>
+                    <p class="dropzone-hint">Your photos for the mosaic</p>
+                </div>
+
+                <div class="tile-grid" id="tileGrid" style="display: none;"></div>
+
+                <span class="tile-count" id="tileCount" style="display: none;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                    </svg>
+                    <span id="tileCountNum">0</span> photos
+                </span>
+
+                <div style="margin-top: 16px; display: flex; gap: 8px;">
+                    <button class="btn btn-secondary btn-sm" id="addMoreTiles">Add more photos</button>
+                    <button class="btn btn-ghost btn-sm" id="reuseLibrary">Reuse existing</button>
+                </div>
+
+                <div class="toggle-row" style="margin-top: 16px;">
+                    <span class="toggle-text">Allow tile reuse</span>
+                    <div class="toggle active" id="allowReuse"></div>
+                </div>
+
+                <div class="control-group" style="margin-top: 12px;">
+                    <div class="control-label">
+                        Limit repeats per tile
+                        <span class="tooltip-trigger">?
+                            <span class="tooltip">Maximum times a single photo can appear</span>
+                        </span>
+                    </div>
+                    <div class="slider-container">
+                        <span class="slider-value" id="repeatValue">5</span>
+                        <input type="range" class="slider" min="1" max="20" value="5" id="repeatSlider">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 3: Settings -->
+            <section class="panel-section">
+                <div class="section-header">
+                    <span class="section-number">3</span>
+                    <h2 class="section-title">Mosaic Settings</h2>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Quality / Resolution</div>
+                    <div class="segmented">
+                        <button class="segmented-btn" data-quality="preview">Preview</button>
+                        <button class="segmented-btn active" data-quality="standard">Standard</button>
+                        <button class="segmented-btn" data-quality="high">High-Res</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        Tile Size
+                        <span class="tooltip-trigger">?
+                            <span class="tooltip">Smaller tiles = more detail, slower processing</span>
+                        </span>
+                    </div>
+                    <div class="slider-container">
+                        <span class="slider-value" id="tileSizeValue">24px</span>
+                        <input type="range" class="slider" min="8" max="64" value="24" id="tileSizeSlider">
+                    </div>
+                </div>
+
+                <div class="toggle-row">
+                    <div>
+                        <span class="toggle-text">Enable 9x detail (3x3 sub-tiles)</span>
+                        <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px;">Slower but higher detail</p>
+                    </div>
+                    <div class="toggle" id="detail9x"></div>
+                </div>
+
+                <div class="control-group" style="margin-top: 20px;">
+                    <div class="control-label">Color & Blending</div>
+
+                    <div class="checkbox-row">
+                        <div class="checkbox checked" id="colorTinting">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <span class="checkbox-text">Apply color tinting / stained-glass effect</span>
+                    </div>
+
+                    <div class="slider-container" style="margin-top: 12px;">
+                        <span class="slider-value" id="tintValue">50%</span>
+                        <input type="range" class="slider" min="0" max="100" value="50" id="tintSlider">
+                    </div>
+                </div>
+
+                <div class="segmented" style="margin-top: 16px;">
+                    <button class="segmented-btn active" data-blend="preserve">Preserve colors</button>
+                    <button class="segmented-btn" data-blend="blend">Blend with target</button>
+                </div>
+
+                <div class="control-group" style="margin-top: 24px;">
+                    <div class="control-label">Advanced Options</div>
+
+                    <select class="export-select" id="colorMode" style="margin-bottom: 12px;">
+                        <option value="average">Average color matching</option>
+                        <option value="dominant">Dominant color matching</option>
+                    </select>
+
+                    <div class="checkbox-row">
+                        <div class="checkbox" id="avoidExtreme">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <span class="checkbox-text">Avoid extreme color shifts</span>
+                    </div>
+
+                    <div class="segmented" style="margin-top: 12px;">
+                        <button class="segmented-btn active" data-crop="crop">Crop to fit</button>
+                        <button class="segmented-btn" data-crop="fit">Fit (letterbox)</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 4: Generate -->
+            <section class="panel-section">
+                <div class="section-header">
+                    <span class="section-number">4</span>
+                    <h2 class="section-title">Generate & Export</h2>
+                </div>
+
+                <button class="btn btn-primary btn-block" id="generateBtn" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Generate Mosaic
+                </button>
+
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <div class="progress-status">
+                        <div class="progress-spinner"></div>
+                        <span class="progress-text" id="progressText">Analyzing tiles...</span>
+                    </div>
+                </div>
+
+                <div class="progress-summary" id="progressSummary">
+                    <p><strong>Complete!</strong> Generated 120 x 80 tiles using 240 photos</p>
+                    <button class="btn btn-ghost btn-sm" style="margin-top: 8px;">Start over with new target</button>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Viewer -->
+        <section class="viewer">
+            <div class="viewer-canvas">
+                <div class="viewer-placeholder" id="viewerPlaceholder">
+                    <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="8" y="8" width="28" height="28" rx="4"/>
+                        <rect x="44" y="8" width="28" height="28" rx="4"/>
+                        <rect x="8" y="44" width="28" height="28" rx="4"/>
+                        <rect x="44" y="44" width="28" height="28" rx="4"/>
+                    </svg>
+                    <p class="viewer-placeholder-text">Your mosaic will appear here</p>
+                </div>
+
+                <div class="mosaic-preview" id="mosaicPreview">
+                    <img src="" alt="Mosaic preview" class="mosaic-image" id="mosaicImage">
+                </div>
+            </div>
+
+            <!-- Viewer Controls Top -->
+            <div class="viewer-controls-top">
+                <span class="zoom-label" id="zoomLabel">100%</span>
+                <div class="viewer-btn-group">
+                    <button class="viewer-btn" id="resetView">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                        </svg>
+                        Reset
+                    </button>
+                    <button class="viewer-btn" id="toggleOverlay">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M3 9h18M9 21V9"/>
+                        </svg>
+                        Overlay
+                    </button>
+                </div>
+            </div>
+
+            <!-- Viewer Controls Bottom -->
+            <div class="viewer-controls-bottom">
+                <div class="zoom-controls">
+                    <button class="zoom-btn" id="zoomOut">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35M8 11h6"/>
+                        </svg>
+                    </button>
+                    <div class="zoom-divider"></div>
+                    <button class="zoom-btn" id="zoomIn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35M11 8v6M8 11h6"/>
+                        </svg>
+                    </button>
+                    <div class="zoom-divider"></div>
+                    <button class="zoom-btn" id="fitScreen">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Minimap -->
+            <div class="minimap" id="minimap">
+                <img src="" alt="Minimap" class="minimap-image" id="minimapImage">
+                <div class="minimap-viewport" id="minimapViewport" style="left: 20%; top: 20%; width: 40%; height: 40%;"></div>
+            </div>
+
+            <!-- Tile Tooltip -->
+            <div class="tile-tooltip" id="tileTooltip">
+                <img src="" alt="" class="tile-tooltip-thumb" id="tooltipThumb">
+                <span class="tile-tooltip-name" id="tooltipName">photo_001.jpg</span>
+            </div>
+
+            <!-- Footer / Tip -->
+            <div class="footer">
+                <div class="tip-container">
+                    <svg class="tip-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    </svg>
+                    <span class="tip-text"><strong>Tip:</strong> Use more tile photos for smoother gradients</span>
+                    <a href="#" class="tip-link">How it works</a>
+                </div>
+            </div>
+
+            <!-- History Strip -->
+            <div class="history-strip">
+                <div class="history-card">
+                    <span class="history-card-title">Beach Trip Mosaic</span>
+                    <span class="history-card-meta">4K - Today</span>
+                </div>
+                <div class="history-card">
+                    <span class="history-card-title">Wedding Portrait</span>
+                    <span class="history-card-meta">8K - Yesterday</span>
+                </div>
+                <div class="history-card">
+                    <span class="history-card-title">Family Reunion</span>
+                    <span class="history-card-meta">2K - Dec 8</span>
+                </div>
+            </div>
+
+            <!-- Export Panel -->
+            <div class="export-panel" id="exportPanel">
+                <h3 class="export-title">Export Mosaic</h3>
+
+                <div class="export-option">
+                    <label>Resolution</label>
+                    <select class="export-select" id="exportResolution">
+                        <option value="2k">Social (2K)</option>
+                        <option value="4k" selected>Poster (4K)</option>
+                        <option value="8k">Ultra (8K)</option>
+                    </select>
+                </div>
+
+                <div class="export-option">
+                    <label>Format</label>
+                    <div class="export-format">
+                        <button class="format-btn active" data-format="png">PNG</button>
+                        <button class="format-btn" data-format="jpg">JPG</button>
+                    </div>
+                </div>
+
+                <div class="checkbox-row" style="margin-bottom: 16px;">
+                    <div class="checkbox checked" id="exportWithTint">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </div>
+                    <span class="checkbox-text">Include color tinting</span>
+                </div>
+
+                <button class="btn btn-primary btn-block" id="downloadBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                    </svg>
+                    Download Mosaic
+                </button>
+
+                <button class="btn btn-ghost btn-block btn-sm" style="margin-top: 8px;">
+                    Copy shareable link
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Mobile Bottom Bar -->
+    <div class="mobile-bar">
+        <button class="btn btn-primary btn-block" id="generateBtnMobile" disabled>
+            Generate Mosaic
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dropzone interactions
+            const dropzones = document.querySelectorAll('.dropzone');
+
+            dropzones.forEach(dropzone => {
+                dropzone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.add('drag-over');
+                });
+
+                dropzone.addEventListener('dragleave', () => {
+                    dropzone.classList.remove('drag-over');
+                });
+
+                dropzone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.remove('drag-over');
+                    handleFiles(e.dataTransfer.files, dropzone.id);
+                });
+
+                dropzone.addEventListener('click', () => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.multiple = dropzone.id === 'tilesDropzone';
+                    input.accept = 'image/*';
+                    input.onchange = (e) => handleFiles(e.target.files, dropzone.id);
+                    input.click();
+                });
+            });
+
+            function handleFiles(files, dropzoneId) {
+                if (dropzoneId === 'targetDropzone' && files.length > 0) {
+                    const file = files[0];
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        document.getElementById('targetThumb').src = e.target.result;
+                        document.getElementById('targetName').textContent = file.name;
+                        document.getElementById('targetMeta').textContent = '3840 x 2160 px';
+                        document.getElementById('targetDropzone').style.display = 'none';
+                        document.getElementById('targetPreview').classList.add('visible');
+                        updateNavSteps(1, 'completed');
+                        updateNavSteps(2, 'active');
+                        checkGenerateReady();
+                    };
+                    reader.readAsDataURL(file);
+                } else if (dropzoneId === 'tilesDropzone') {
+                    addTiles(files);
+                }
+            }
+
+            let tileCount = 0;
+            function addTiles(files) {
+                const grid = document.getElementById('tileGrid');
+                grid.style.display = 'grid';
+
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const tile = document.createElement('div');
+                        tile.className = 'tile-item';
+                        tile.innerHTML = `<img src="${e.target.result}" alt="Tile">`;
+                        grid.appendChild(tile);
+                        tileCount++;
+                        document.getElementById('tileCount').style.display = 'inline-flex';
+                        document.getElementById('tileCountNum').textContent = tileCount;
+                        updateNavSteps(2, 'completed');
+                        updateNavSteps(3, 'active');
+                        checkGenerateReady();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Toggle interactions
+            document.querySelectorAll('.toggle').forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    toggle.classList.toggle('active');
+                });
+            });
+
+            // Checkbox interactions
+            document.querySelectorAll('.checkbox').forEach(checkbox => {
+                checkbox.addEventListener('click', () => {
+                    checkbox.classList.toggle('checked');
+                });
+            });
+
+            // Segmented controls
+            document.querySelectorAll('.segmented').forEach(segmented => {
+                segmented.querySelectorAll('.segmented-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        segmented.querySelectorAll('.segmented-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                    });
+                });
+            });
+
+            // Format buttons
+            document.querySelectorAll('.format-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+
+            // Sliders
+            document.getElementById('tileSizeSlider').addEventListener('input', function() {
+                document.getElementById('tileSizeValue').textContent = this.value + 'px';
+            });
+
+            document.getElementById('tintSlider').addEventListener('input', function() {
+                document.getElementById('tintValue').textContent = this.value + '%';
+            });
+
+            document.getElementById('repeatSlider').addEventListener('input', function() {
+                document.getElementById('repeatValue').textContent = this.value;
+            });
+
+            // Generate button
+            let isGenerated = false;
+            function checkGenerateReady() {
+                const hasTarget = document.getElementById('targetPreview').classList.contains('visible');
+                const hasTiles = tileCount > 0;
+                const ready = hasTarget && hasTiles;
+                document.getElementById('generateBtn').disabled = !ready;
+                document.getElementById('generateBtnMobile').disabled = !ready;
+            }
+
+            document.getElementById('generateBtn').addEventListener('click', startGeneration);
+            document.getElementById('generateBtnMobile').addEventListener('click', startGeneration);
+
+            function startGeneration() {
+                const progressContainer = document.getElementById('progressContainer');
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+
+                progressContainer.classList.add('visible');
+                updateNavSteps(3, 'completed');
+                updateNavSteps(4, 'active');
+
+                const steps = [
+                    { text: 'Analyzing tiles...', progress: 20 },
+                    { text: 'Matching colors...', progress: 50 },
+                    { text: 'Rendering mosaic...', progress: 80 },
+                    { text: 'Finalizing...', progress: 100 }
+                ];
+
+                let step = 0;
+                const interval = setInterval(() => {
+                    if (step < steps.length) {
+                        progressBar.style.width = steps[step].progress + '%';
+                        progressText.textContent = steps[step].text;
+                        step++;
+                    } else {
+                        clearInterval(interval);
+                        progressContainer.classList.remove('visible');
+                        document.getElementById('progressSummary').classList.add('visible');
+                        showMosaic();
+                        updateNavSteps(4, 'completed');
+                    }
+                }, 800);
+            }
+
+            function showMosaic() {
+                document.getElementById('viewerPlaceholder').style.display = 'none';
+                const preview = document.getElementById('mosaicPreview');
+                preview.classList.add('visible');
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 600;
+                const ctx = canvas.getContext('2d');
+
+                const tileSize = 20;
+                for (let y = 0; y < canvas.height; y += tileSize) {
+                    for (let x = 0; x < canvas.width; x += tileSize) {
+                        const hue = (x + y) * 0.5 + Math.random() * 30;
+                        const sat = 60 + Math.random() * 30;
+                        const light = 40 + Math.random() * 30;
+                        ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
+                        ctx.fillRect(x, y, tileSize - 1, tileSize - 1);
+                    }
+                }
+
+                document.getElementById('mosaicImage').src = canvas.toDataURL();
+                document.getElementById('minimapImage').src = canvas.toDataURL();
+                document.getElementById('minimap').classList.add('visible');
+                document.getElementById('exportPanel').classList.add('visible');
+                isGenerated = true;
+            }
+
+            function updateNavSteps(stepNum, status) {
+                document.querySelectorAll('.nav-step').forEach(step => {
+                    const num = parseInt(step.dataset.step);
+                    if (num === stepNum) {
+                        step.classList.remove('active', 'completed');
+                        step.classList.add(status);
+                    }
+                });
+            }
+
+            // Zoom controls
+            let zoomLevel = 100;
+            document.getElementById('zoomIn').addEventListener('click', () => {
+                zoomLevel = Math.min(zoomLevel + 25, 400);
+                updateZoom();
+            });
+
+            document.getElementById('zoomOut').addEventListener('click', () => {
+                zoomLevel = Math.max(zoomLevel - 25, 25);
+                updateZoom();
+            });
+
+            document.getElementById('fitScreen').addEventListener('click', () => {
+                zoomLevel = 100;
+                updateZoom();
+            });
+
+            document.getElementById('resetView').addEventListener('click', () => {
+                zoomLevel = 100;
+                updateZoom();
+            });
+
+            function updateZoom() {
+                document.getElementById('zoomLabel').textContent = zoomLevel + '%';
+                const img = document.getElementById('mosaicImage');
+                img.style.transform = `scale(${zoomLevel / 100})`;
+
+                const viewportSize = 100 / (zoomLevel / 100);
+                const viewport = document.getElementById('minimapViewport');
+                viewport.style.width = Math.min(viewportSize, 100) + '%';
+                viewport.style.height = Math.min(viewportSize, 100) + '%';
+            }
+
+            // Overlay toggle
+            document.getElementById('toggleOverlay').addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+
+            // Replace target
+            document.getElementById('replaceTarget').addEventListener('click', () => {
+                document.getElementById('targetDropzone').style.display = 'block';
+                document.getElementById('targetPreview').classList.remove('visible');
+            });
+
+            // Simulate reuse library
+            document.getElementById('reuseLibrary').addEventListener('click', () => {
+                const grid = document.getElementById('tileGrid');
+                grid.style.display = 'grid';
+
+                for (let i = 0; i < 24; i++) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 60;
+                    canvas.height = 60;
+                    const ctx = canvas.getContext('2d');
+                    const hue = Math.random() * 360;
+                    ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+                    ctx.fillRect(0, 0, 60, 60);
+
+                    const tile = document.createElement('div');
+                    tile.className = 'tile-item';
+                    tile.innerHTML = `<img src="${canvas.toDataURL()}" alt="Tile">`;
+                    grid.appendChild(tile);
+                    tileCount++;
+                }
+
+                document.getElementById('tileCount').style.display = 'inline-flex';
+                document.getElementById('tileCountNum').textContent = tileCount;
+                updateNavSteps(2, 'completed');
+                updateNavSteps(3, 'active');
+                checkGenerateReady();
+            });
+
+            // Tooltip on mosaic hover
+            const mosaicImage = document.getElementById('mosaicImage');
+            const tooltip = document.getElementById('tileTooltip');
+
+            mosaicImage.addEventListener('mousemove', (e) => {
+                if (!isGenerated) return;
+                const rect = mosaicImage.getBoundingClientRect();
+                tooltip.classList.add('visible');
+                tooltip.style.left = (e.clientX + 20) + 'px';
+                tooltip.style.top = (e.clientY - 30) + 'px';
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 48;
+                canvas.height = 48;
+                const ctx = canvas.getContext('2d');
+                const hue = ((e.clientX - rect.left) + (e.clientY - rect.top)) * 0.5;
+                ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+                ctx.fillRect(0, 0, 48, 48);
+                document.getElementById('tooltipThumb').src = canvas.toDataURL();
+                document.getElementById('tooltipName').textContent = `photo_${Math.floor(Math.random() * 240) + 1}.jpg`;
+            });
+
+            mosaicImage.addEventListener('mouseleave', () => {
+                tooltip.classList.remove('visible');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -208,7 +208,7 @@ router.delete('/session/:sessionId/tiles', (req: Request, res: Response) => {
 // Update settings
 router.put('/session/:sessionId/settings', (req: Request, res: Response) => {
   const { sessionId } = req.params;
-  const { allowDuplicates, allowTinting } = req.body;
+  const { allowDuplicates, allowTinting, tintPercentage, maxRepeatsPerTile, colorMode } = req.body;
 
   const session = sessionStore.getSession(sessionId);
   if (!session) {
@@ -221,6 +221,15 @@ router.put('/session/:sessionId/settings', (req: Request, res: Response) => {
   }
   if (typeof allowTinting === 'boolean') {
     session.allowTinting = allowTinting;
+  }
+  if (typeof tintPercentage === 'number') {
+    session.tintPercentage = tintPercentage;
+  }
+  if (typeof maxRepeatsPerTile === 'number') {
+    session.maxRepeatsPerTile = maxRepeatsPerTile;
+  }
+  if (colorMode && ['blend', 'vibrant', 'muted'].includes(colorMode)) {
+    session.colorMode = colorMode;
   }
 
   res.json({
@@ -238,7 +247,11 @@ router.post('/session/:sessionId/generate', async (req: Request, res: Response) 
       resolution = 'medium',
       useAllTiles = false,
       exactTileCount,
-      nineXDetail = false
+      nineXDetail = false,
+      tintPercentage,
+      tileSize,
+      maxRepeatsPerTile,
+      colorMode
     } = req.body;
 
     const session = sessionStore.getSession(sessionId);
@@ -282,7 +295,11 @@ router.post('/session/:sessionId/generate', async (req: Request, res: Response) 
       allowTinting: session.allowTinting,
       useAllTiles,
       exactTileCount,
-      nineXDetail
+      nineXDetail,
+      tintPercentage: tintPercentage || session.tintPercentage,
+      tileSize,
+      maxRepeatsPerTile: maxRepeatsPerTile || session.maxRepeatsPerTile,
+      colorMode: colorMode || session.colorMode
     });
 
     session.mosaic = mosaic;

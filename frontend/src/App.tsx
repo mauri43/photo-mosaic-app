@@ -23,6 +23,10 @@ function App() {
     setResolution,
     setUseAllTiles,
     setNineXDetail,
+    setTintPercentage,
+    setTileSize,
+    setMaxRepeatsPerTile,
+    setColorMode,
     generateMosaic,
     getDziUrl,
     getDownloadUrl,
@@ -232,6 +236,14 @@ function App() {
                   onNineXDetailChange={setNineXDetail}
                   onResolutionChange={setResolution}
                   onUseAllTilesChange={setUseAllTiles}
+                  tintPercentage={state.tintPercentage}
+                  tileSize={state.tileSize}
+                  maxRepeatsPerTile={state.maxRepeatsPerTile}
+                  colorMode={state.colorMode}
+                  onTintPercentageChange={setTintPercentage}
+                  onTileSizeChange={setTileSize}
+                  onMaxRepeatsChange={setMaxRepeatsPerTile}
+                  onColorModeChange={setColorMode}
                 />
 
                 {/* Generate Button */}

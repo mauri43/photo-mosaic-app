@@ -125,7 +125,8 @@ export async function generateMosaic(
   const assignments = await matchTilesToCells(
     cells,
     tiles,
-    options.allowDuplicates
+    options.allowDuplicates,
+    options.maxRepeatsPerTile
   );
 
   // Generate final mosaic
@@ -135,7 +136,8 @@ export async function generateMosaic(
     targetHeight,
     cellWidth,
     cellHeight,
-    options.allowTinting
+    options.allowTinting,
+    options.tintPercentage
   );
 
   return mosaic;
@@ -260,7 +262,8 @@ async function analyzeTargetCells(
 async function matchTilesToCells(
   cells: GridCell[],
   tiles: TileImage[],
-  allowDuplicates: boolean
+  allowDuplicates: boolean,
+  maxRepeatsPerTile?: number
 ): Promise<TileAssignment[]> {
   const assignments: TileAssignment[] = [];
 
@@ -286,7 +289,7 @@ async function matchTilesToCells(
   // Track tile usage for duplicates mode
   const tileUsageCount = new Map<string, number>();
   const maxUsagePerTile = allowDuplicates
-    ? Math.ceil(cells.length / tiles.length) + 1
+    ? (maxRepeatsPerTile || Math.ceil(cells.length / tiles.length) + 1)
     : 1;
 
   for (const cell of sortedCells) {
@@ -350,7 +353,8 @@ async function compositeMosaic(
   height: number,
   cellWidth: number,
   cellHeight: number,
-  allowTinting: boolean
+  allowTinting: boolean,
+  tintPercentage?: number
 ): Promise<Buffer> {
   console.log(`Compositing ${assignments.length} tiles into ${width}x${height} mosaic`);
 
@@ -388,7 +392,7 @@ async function compositeMosaic(
           tileBuffer,
           assignment.cell.averageColor,
           assignment.tile.averageColor,
-          0.45
+          (tintPercentage || 50) / 100
         );
       }
 

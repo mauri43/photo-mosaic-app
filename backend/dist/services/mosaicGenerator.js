@@ -82,9 +82,9 @@ async function generateMosaic(session, options) {
     // Analyze target image cells
     const cells = await analyzeTargetCells(session.targetImage, grid.cols, grid.rows, cellWidth, cellHeight);
     // Match tiles to cells
-    const assignments = await matchTilesToCells(cells, tiles, options.allowDuplicates);
+    const assignments = await matchTilesToCells(cells, tiles, options.allowDuplicates, options.maxRepeatsPerTile);
     // Generate final mosaic
-    const mosaic = await compositeMosaic(assignments, targetWidth, targetHeight, cellWidth, cellHeight, options.allowTinting);
+    const mosaic = await compositeMosaic(assignments, targetWidth, targetHeight, cellWidth, cellHeight, options.allowTinting, options.tintPercentage);
     return mosaic;
 }
 // Calculate grid from a specific tile count
@@ -170,7 +170,7 @@ async function analyzeTargetCells(targetImage, cols, rows, cellWidth, cellHeight
     console.log(`Cell analysis complete: ${cells.length} cells`);
     return cells;
 }
-async function matchTilesToCells(cells, tiles, allowDuplicates) {
+async function matchTilesToCells(cells, tiles, allowDuplicates, maxRepeatsPerTile) {
     const assignments = [];
     if (tiles.length === 0) {
         throw new Error('No tiles available for matching');
@@ -191,7 +191,7 @@ async function matchTilesToCells(cells, tiles, allowDuplicates) {
     // Track tile usage for duplicates mode
     const tileUsageCount = new Map();
     const maxUsagePerTile = allowDuplicates
-        ? Math.ceil(cells.length / tiles.length) + 1
+        ? (maxRepeatsPerTile || Math.ceil(cells.length / tiles.length) + 1)
         : 1;
     for (const cell of sortedCells) {
         let bestTile = null;
@@ -242,7 +242,7 @@ async function matchTilesToCells(cells, tiles, allowDuplicates) {
     }
     return assignments;
 }
-async function compositeMosaic(assignments, width, height, cellWidth, cellHeight, allowTinting) {
+async function compositeMosaic(assignments, width, height, cellWidth, cellHeight, allowTinting, tintPercentage) {
     console.log(`Compositing ${assignments.length} tiles into ${width}x${height} mosaic`);
     // Process in small batches to avoid memory spikes
     // Composite 20 tiles at a time onto the canvas
@@ -265,7 +265,7 @@ async function compositeMosaic(assignments, width, height, cellWidth, cellHeight
             let tileBuffer = await (0, imageProcessor_js_1.resizeTile)(assignment.tile.buffer, cellWidth, cellHeight);
             // Apply tinting if enabled
             if (allowTinting) {
-                tileBuffer = await (0, imageProcessor_js_1.applyTint)(tileBuffer, assignment.cell.averageColor, assignment.tile.averageColor, 0.45);
+                tileBuffer = await (0, imageProcessor_js_1.applyTint)(tileBuffer, assignment.cell.averageColor, assignment.tile.averageColor, (tintPercentage || 50) / 100);
             }
             batchInputs.push({
                 input: tileBuffer,
