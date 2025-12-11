@@ -128,8 +128,10 @@ router.post('/session/:sessionId/dimensions', async (req: Request, res: Response
   }
 });
 
-// Upload tile images
-router.post('/session/:sessionId/tiles', upload.array('images', 1000), async (req: Request, res: Response) => {
+// Upload tile images - memory optimized
+const MAX_TILES = 500; // Limit total tiles to prevent memory issues
+
+router.post('/session/:sessionId/tiles', upload.array('images', 500), async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     const session = sessionStore.getSession(sessionId);
@@ -145,28 +147,43 @@ router.post('/session/:sessionId/tiles', upload.array('images', 1000), async (re
       return;
     }
 
-    console.log(`Processing ${files.length} tile images...`);
+    // Check if adding these would exceed limit
+    const currentCount = session.tileImages.size;
+    const availableSlots = MAX_TILES - currentCount;
 
-    // Process tiles in parallel batches
-    const batchSize = 20;
-    let processed = 0;
-
-    for (let i = 0; i < files.length; i += batchSize) {
-      const batch = files.slice(i, i + batchSize);
-      const promises = batch.map(file => processTileImage(file.buffer));
-      const tiles = await Promise.all(promises);
-
-      for (const tile of tiles) {
-        session.tileImages.set(tile.id, tile);
-      }
-
-      processed += batch.length;
-      console.log(`Processed ${processed}/${files.length} tiles`);
+    if (availableSlots <= 0) {
+      res.status(400).json({ error: `Maximum ${MAX_TILES} tiles allowed. Please clear existing tiles first.` });
+      return;
     }
+
+    // Only process up to available slots
+    const filesToProcess = files.slice(0, availableSlots);
+    console.log(`Processing ${filesToProcess.length} tile images (limit: ${MAX_TILES})...`);
+
+    // Process tiles SEQUENTIALLY to reduce peak memory usage
+    let processed = 0;
+    for (const file of filesToProcess) {
+      try {
+        const tile = await processTileImage(file.buffer);
+        session.tileImages.set(tile.id, tile);
+        processed++;
+
+        // Log progress every 10 tiles
+        if (processed % 10 === 0) {
+          console.log(`Processed ${processed}/${filesToProcess.length} tiles`);
+        }
+      } catch (err) {
+        console.error('Error processing single tile:', err);
+        // Continue with other tiles
+      }
+    }
+
+    console.log(`Finished processing ${processed} tiles`);
 
     res.json({
       success: true,
-      totalTiles: session.tileImages.size
+      totalTiles: session.tileImages.size,
+      skipped: files.length - filesToProcess.length
     });
   } catch (error) {
     console.error('Error uploading tile images:', error);

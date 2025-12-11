@@ -13,6 +13,13 @@ import {
 } from './imageProcessor.js';
 import { deltaE2000 } from '../utils/colorUtils.js';
 
+// Configure Sharp for low memory usage
+sharp.cache({ memory: 50, files: 20, items: 100 });
+sharp.concurrency(1); // Process one image at a time to reduce peak memory
+
+// Maximum output dimensions to prevent memory issues
+const MAX_OUTPUT_DIMENSION = 4000;
+
 interface TileAssignment {
   cell: GridCell;
   tile: TileImage;
@@ -33,9 +40,21 @@ export async function generateMosaic(
   }
 
   const targetMetadata = await sharp(session.targetImage).metadata();
-  const targetWidth = targetMetadata.width || 0;
-  const targetHeight = targetMetadata.height || 0;
+  let targetWidth = targetMetadata.width || 0;
+  let targetHeight = targetMetadata.height || 0;
   const aspectRatio = targetWidth / targetHeight;
+
+  // Limit output dimensions to prevent memory issues
+  if (targetWidth > MAX_OUTPUT_DIMENSION || targetHeight > MAX_OUTPUT_DIMENSION) {
+    if (targetWidth > targetHeight) {
+      targetWidth = MAX_OUTPUT_DIMENSION;
+      targetHeight = Math.round(MAX_OUTPUT_DIMENSION / aspectRatio);
+    } else {
+      targetHeight = MAX_OUTPUT_DIMENSION;
+      targetWidth = Math.round(MAX_OUTPUT_DIMENSION * aspectRatio);
+    }
+    console.log(`Limiting output to ${targetWidth}x${targetHeight} to save memory`);
+  }
 
   const tiles = Array.from(session.tileImages.values());
   const tileCount = tiles.length;
@@ -302,44 +321,43 @@ async function compositeMosaic(
 ): Promise<Buffer> {
   console.log(`Compositing ${assignments.length} tiles into ${width}x${height} mosaic`);
 
-  // Process tiles in batches
-  const batchSize = 100;
+  // Process tiles SEQUENTIALLY to minimize memory usage
   const compositeInputs: sharp.OverlayOptions[] = [];
 
-  for (let i = 0; i < assignments.length; i += batchSize) {
-    const batch = assignments.slice(i, i + batchSize);
+  for (let i = 0; i < assignments.length; i++) {
+    const assignment = assignments[i];
 
-    const batchPromises = batch.map(async (assignment) => {
-      let tileBuffer = await resizeTile(
-        assignment.tile.buffer,
-        cellWidth,
-        cellHeight
+    let tileBuffer = await resizeTile(
+      assignment.tile.buffer,
+      cellWidth,
+      cellHeight
+    );
+
+    // Apply tinting if enabled
+    if (allowTinting) {
+      tileBuffer = await applyTint(
+        tileBuffer,
+        assignment.cell.averageColor,
+        assignment.tile.averageColor,
+        0.20 // 20% tint intensity
       );
+    }
 
-      // Apply tinting if enabled
-      if (allowTinting) {
-        tileBuffer = await applyTint(
-          tileBuffer,
-          assignment.cell.averageColor,
-          assignment.tile.averageColor,
-          0.20 // 20% tint intensity
-        );
-      }
-
-      return {
-        input: tileBuffer,
-        left: Math.floor(assignment.cell.x),
-        top: Math.floor(assignment.cell.y)
-      };
+    compositeInputs.push({
+      input: tileBuffer,
+      left: Math.floor(assignment.cell.x),
+      top: Math.floor(assignment.cell.y)
     });
 
-    const batchResults = await Promise.all(batchPromises);
-    compositeInputs.push(...batchResults);
-
-    console.log(`Processed ${Math.min(i + batchSize, assignments.length)}/${assignments.length} tiles`);
+    // Log progress every 50 tiles
+    if ((i + 1) % 50 === 0) {
+      console.log(`Processed ${i + 1}/${assignments.length} tiles`);
+    }
   }
 
-  // Create the final composite
+  console.log(`Creating final composite...`);
+
+  // Create the final composite with lower quality to save memory
   const mosaic = await sharp({
     create: {
       width: Math.floor(width),
@@ -349,7 +367,7 @@ async function compositeMosaic(
     }
   })
     .composite(compositeInputs)
-    .jpeg({ quality: 95 })
+    .jpeg({ quality: 85 }) // Reduced from 95 to save memory
     .toBuffer();
 
   console.log(`Mosaic generated: ${mosaic.length} bytes`);
