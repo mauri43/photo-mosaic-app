@@ -46,6 +46,7 @@ function ViewerPlaceholderIcon() {
 function App() {
   const {
     state,
+    effectiveTileCount,
     uploadTarget,
     uploadTiles,
     clearTiles,
@@ -153,6 +154,7 @@ function App() {
               onUpload={uploadTiles}
               onClear={clearTiles}
               tileCount={state.tileCount}
+              effectiveTileCount={effectiveTileCount}
               previews={state.tilePreviews}
               requiredCount={recommendedCount}
             />
@@ -169,9 +171,9 @@ function App() {
             {/* Limit repeats per tile */}
             {state.allowDuplicates && (
               <div className="control-group" style={{ marginTop: '12px' }}>
-                <div className="control-label">Limit repeats per tile</div>
+                <div className="control-label">Max repeats per tile</div>
                 <div className="slider-container">
-                  <span className="slider-value">{state.maxRepeatsPerTile}</span>
+                  <span className="slider-value">{state.maxRepeatsPerTile}x</span>
                   <input
                     type="range"
                     className="slider"
@@ -181,6 +183,18 @@ function App() {
                     onChange={(e) => setMaxRepeatsPerTile(Number(e.target.value))}
                   />
                 </div>
+                {state.tileCount > 0 && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    background: 'var(--bg-glass-light)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem',
+                    color: 'var(--accent-cyan)'
+                  }}>
+                    {state.tileCount} photos × {state.maxRepeatsPerTile} = <strong>{effectiveTileCount}</strong> effective tiles
+                  </div>
+                )}
               </div>
             )}
           </section>

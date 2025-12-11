@@ -55,9 +55,11 @@ export async function uploadTileImages(
   files: File[],
   onProgress?: (progress: number) => void
 ): Promise<number> {
-  // OPTIMIZATION: Upload in batches of 30 to avoid memory overflow on server
-  const BATCH_SIZE = 30;
+  // OPTIMIZATION: Upload in smaller batches of 20 to avoid memory overflow and timeouts
+  const BATCH_SIZE = 20;
+  const MAX_RETRIES = 2;
   let totalUploaded = 0;
+  let failedBatches = 0;
 
   for (let i = 0; i < files.length; i += BATCH_SIZE) {
     const batch = files.slice(i, i + BATCH_SIZE);
@@ -66,22 +68,47 @@ export async function uploadTileImages(
       formData.append('images', file);
     });
 
-    const response = await axios.post(
-      `${API_BASE}/session/${sessionId}/tiles`,
-      formData,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
-          if (onProgress && progressEvent.total) {
-            const batchProgress = progressEvent.loaded / progressEvent.total;
-            const overallProgress = Math.round(((i + batchProgress * batch.length) / files.length) * 100);
-            onProgress(overallProgress);
+    let success = false;
+
+    for (let retry = 0; retry <= MAX_RETRIES && !success; retry++) {
+      try {
+        const response = await axios.post(
+          `${API_BASE}/session/${sessionId}/tiles`,
+          formData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000, // 60 second timeout per batch
+            onUploadProgress: (progressEvent) => {
+              if (onProgress && progressEvent.total) {
+                const batchProgress = progressEvent.loaded / progressEvent.total;
+                const overallProgress = Math.round(((i + batchProgress * batch.length) / files.length) * 100);
+                onProgress(overallProgress);
+              }
+            }
           }
+        );
+
+        totalUploaded = response.data.totalTiles;
+        success = true;
+      } catch (error) {
+        console.warn(`Batch ${Math.floor(i / BATCH_SIZE) + 1} failed (attempt ${retry + 1}/${MAX_RETRIES + 1}):`, error);
+        // Wait before retry
+        if (retry < MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
-    );
+    }
 
-    totalUploaded = response.data.totalTiles;
+    if (!success) {
+      failedBatches++;
+      console.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} failed after ${MAX_RETRIES + 1} attempts`);
+      // Continue with other batches instead of stopping entirely
+    }
+  }
+
+  // If all batches failed, throw error
+  if (totalUploaded === 0 && failedBatches > 0) {
+    throw new Error('Failed to upload images. Please try again with fewer images or check your connection.');
   }
 
   return totalUploaded;

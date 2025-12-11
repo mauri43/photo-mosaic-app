@@ -99,14 +99,29 @@ export async function generateMosaic(
 
   const totalCellCount = grid.cols * grid.rows;
 
-  // Validate tile count (detail modes always use duplicates)
+  // Validate tile count
+  // When duplicates are allowed, effective tile availability = actual tiles × max repeats
   const usesDetailMode = options.resolution === 'low' || options.nineXDetail;
-  if (!options.allowDuplicates && !usesDetailMode && tileCount < totalCellCount) {
-    throw new Error(
-      `Not enough unique tiles. Need ${totalCellCount} tiles but only have ${tileCount}. ` +
-      `Enable duplicates or upload more tile images.`
-    );
+  const effectiveTileCount = options.allowDuplicates
+    ? tileCount * (options.maxRepeatsPerTile || 5)
+    : tileCount;
+
+  if (!usesDetailMode && effectiveTileCount < totalCellCount) {
+    if (options.allowDuplicates) {
+      throw new Error(
+        `Not enough effective tiles. Need ${totalCellCount} tiles but only have ${effectiveTileCount} ` +
+        `(${tileCount} photos × ${options.maxRepeatsPerTile || 5} repeats). ` +
+        `Increase max repeats per tile or upload more photos.`
+      );
+    } else {
+      throw new Error(
+        `Not enough unique tiles. Need ${totalCellCount} tiles but only have ${tileCount}. ` +
+        `Enable tile reuse or upload more photos.`
+      );
+    }
   }
+
+  console.log(`Effective tile availability: ${effectiveTileCount} (${tileCount} tiles × ${options.maxRepeatsPerTile || (options.allowDuplicates ? 5 : 1)} max repeats)`);
 
   // Calculate cell dimensions based on actual image size
   const cellWidth = targetWidth / grid.cols;

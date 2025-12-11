@@ -5,6 +5,7 @@ interface TileUploadProps {
   onUpload: (files: File[], onProgress?: (progress: number) => void) => Promise<void>;
   onClear: () => void;
   tileCount: number;
+  effectiveTileCount: number;
   previews: string[];
   requiredCount: number;
 }
@@ -37,6 +38,7 @@ export function TileUpload({
   onUpload,
   onClear,
   tileCount,
+  effectiveTileCount,
   previews,
   requiredCount: _requiredCount
 }: TileUploadProps) {
@@ -178,7 +180,7 @@ export function TileUpload({
       {tileCount > 0 && (
         <span className="tile-count">
           <GridIcon />
-          <span>{tileCount} photos</span>
+          <span>{tileCount} photos{effectiveTileCount !== tileCount && ` (${effectiveTileCount} effective)`}</span>
         </span>
       )}
 

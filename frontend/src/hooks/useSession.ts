@@ -150,6 +150,14 @@ export function useSession() {
         onProgress
       );
 
+      if (totalTiles === 0) {
+        setState(prev => ({
+          ...prev,
+          error: 'No images could be processed. Please try different images.'
+        }));
+        return;
+      }
+
       setState(prev => ({
         ...prev,
         tileCount: totalTiles,
@@ -157,9 +165,12 @@ export function useSession() {
         step: Math.max(prev.step, 3)
       }));
     } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Failed to upload tile images. Please try again with fewer images.';
       setState(prev => ({
         ...prev,
-        error: 'Failed to upload tile images'
+        error: message
       }));
     }
   }, [state.sessionId]);
@@ -369,8 +380,14 @@ export function useSession() {
     }));
   }, [state.targetImagePreview]);
 
+  // Calculate effective tile count (actual tiles × max repeats when duplicates allowed)
+  const effectiveTileCount = state.allowDuplicates
+    ? state.tileCount * state.maxRepeatsPerTile
+    : state.tileCount;
+
   return {
     state,
+    effectiveTileCount,
     uploadTarget,
     setManualMode,
     setDimensions,
