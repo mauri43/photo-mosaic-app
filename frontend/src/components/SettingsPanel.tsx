@@ -87,10 +87,10 @@ export function SettingsPanel({
                 className={`
                   p-3 rounded-lg border-2 transition-all text-center
                   ${selectedResolution === res
-                    ? 'border-blue-500 bg-blue-500/20 text-blue-300'
+                    ? 'border-blue-500 btn-gradient/20 text-sky-300'
                     : isDisabled
-                      ? 'border-gray-700 bg-gray-800/30 text-gray-600 cursor-not-allowed'
-                      : 'border-gray-600 bg-gray-800/50 text-gray-300 hover:border-gray-500'
+                      ? 'border-[rgba(148,163,184,0.15)] glass-panel text-gray-600 cursor-not-allowed'
+                      : 'border-sky-400/30 glass-panel text-gray-300 hover:border-gray-500'
                   }
                 `}
               >
@@ -117,7 +117,7 @@ export function SettingsPanel({
       {/* Toggles */}
       <div className="space-y-4">
         {/* Allow Duplicates */}
-        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+        <div className="flex items-center justify-between p-3 glass-panel rounded-lg">
           <div className="flex items-center gap-3">
             <Copy className="w-5 h-5 text-gray-400" />
             <div>
@@ -133,7 +133,7 @@ export function SettingsPanel({
             onClick={() => onDuplicatesChange(!allowDuplicates)}
             className={`
               relative w-12 h-6 rounded-full transition-colors
-              ${allowDuplicates ? 'bg-blue-500' : 'bg-gray-600'}
+              ${allowDuplicates ? 'btn-gradient' : 'bg-gray-600'}
             `}
           >
             <span
@@ -146,7 +146,7 @@ export function SettingsPanel({
         </div>
 
         {/* Allow Tinting */}
-        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+        <div className="flex items-center justify-between p-3 glass-panel rounded-lg">
           <div className="flex items-center gap-3">
             <Paintbrush className="w-5 h-5 text-gray-400" />
             <div>
@@ -162,7 +162,7 @@ export function SettingsPanel({
             onClick={() => onTintingChange(!allowTinting)}
             className={`
               relative w-12 h-6 rounded-full transition-colors
-              ${allowTinting ? 'bg-blue-500' : 'bg-gray-600'}
+              ${allowTinting ? 'btn-gradient' : 'bg-gray-600'}
             `}
           >
             <span
@@ -177,10 +177,10 @@ export function SettingsPanel({
 
         {/* Tint Percentage Slider - shown when tinting enabled */}
         {allowTinting && (
-          <div className="p-3 bg-gray-800/50 rounded-lg">
+          <div className="p-3 glass-panel rounded-lg">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm text-gray-300">Tinting Intensity</span>
-              <span className="text-sm font-mono text-blue-400">{tintPercentage}%</span>
+              <span className="text-sm font-mono text-sky-400">{tintPercentage}%</span>
             </div>
             <input
               type="range"
@@ -195,10 +195,10 @@ export function SettingsPanel({
 
         {/* Max Repeats Slider - shown when duplicates enabled */}
         {allowDuplicates && (
-          <div className="p-3 bg-gray-800/50 rounded-lg">
+          <div className="p-3 glass-panel rounded-lg">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm text-gray-300">Max Repeats per Tile</span>
-              <span className="text-sm font-mono text-blue-400">{maxRepeatsPerTile}x</span>
+              <span className="text-sm font-mono text-sky-400">{maxRepeatsPerTile}x</span>
             </div>
             <input
               type="range"
@@ -212,10 +212,10 @@ export function SettingsPanel({
         )}
 
         {/* Tile Size Slider */}
-        <div className="p-3 bg-gray-800/50 rounded-lg">
+        <div className="p-3 glass-panel rounded-lg">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-gray-300">Tile Size</span>
-            <span className="text-sm font-mono text-blue-400">{tileSize}px</span>
+            <span className="text-sm font-mono text-sky-400">{tileSize}px</span>
           </div>
           <input
             type="range"
@@ -228,12 +228,12 @@ export function SettingsPanel({
         </div>
 
         {/* Color Mode Select */}
-        <div className="p-3 bg-gray-800/50 rounded-lg">
+        <div className="p-3 glass-panel rounded-lg">
           <label className="text-sm text-gray-300 block mb-2">Color Mode</label>
           <select
             value={colorMode}
             onChange={(e) => onColorModeChange(e.target.value as 'blend' | 'vibrant' | 'muted')}
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200"
+            className="w-full bg-gray-700 border border-sky-400/30 rounded-lg px-3 py-2 text-sm text-gray-200"
           >
             <option value="blend">Blend with Target</option>
             <option value="vibrant">Vibrant</option>

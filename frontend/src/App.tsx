@@ -63,13 +63,13 @@ function App() {
   // Show viewer if mosaic is generated
   if (state.hasMosaic && state.dziMetadata) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-[var(--bg-deep)] text-white">
         {state.error && <ErrorAlert message={state.error} onDismiss={clearError} />}
 
-        <header className="bg-gray-800/50 border-b border-gray-700 px-6 py-4">
+        <header className="glass-panel border-b border-[rgba(148,163,184,0.15)] px-6 py-4">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Grid3X3 className="w-8 h-8 text-blue-400" />
+              <Grid3X3 className="w-8 h-8 text-sky-400" />
               <h1 className="text-xl font-bold">Photo Mosaic Generator</h1>
             </div>
             <div className="text-sm text-gray-400">
@@ -97,12 +97,12 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-[var(--bg-deep)] text-white">
       {state.error && <ErrorAlert message={state.error} onDismiss={clearError} />}
 
-      <header className="bg-gray-800/50 border-b border-gray-700 px-6 py-4">
+      <header className="glass-panel border-b border-[rgba(148,163,184,0.15)] px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <Grid3X3 className="w-8 h-8 text-blue-400" />
+          <Grid3X3 className="w-8 h-8 text-sky-400" />
           <h1 className="text-xl font-bold">Photo Mosaic Generator</h1>
         </div>
       </header>
@@ -112,9 +112,9 @@ function App() {
 
         <div className="space-y-8">
           {/* Step 1: Target Image */}
-          <section className="bg-gray-800/30 rounded-xl p-6">
+          <section className="glass-panel rounded-xl p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-blue-500 text-sm flex items-center justify-center">1</span>
+              <span className="w-6 h-6 rounded-full btn-gradient text-sm flex items-center justify-center">1</span>
               Upload Target Image
             </h2>
             <TargetUpload
@@ -126,7 +126,7 @@ function App() {
 
             {/* Image Analysis Results */}
             {state.imageAnalysis && (
-              <div className="mt-4 p-4 bg-gray-800/50 rounded-lg">
+              <div className="mt-4 p-4 glass-panel rounded-lg">
                 <div className="flex items-center gap-2 mb-3">
                   <Wand2 className="w-4 h-4 text-purple-400" />
                   <span className="text-sm font-medium text-purple-300">Image Analysis</span>
@@ -146,7 +146,7 @@ function App() {
                     <span className="text-gray-400">Recommended tiles:</span>
                     <div className="text-xs mt-1 space-x-3">
                       <span className="text-yellow-400">Low: {state.imageAnalysis.recommendedTiles.low}</span>
-                      <span className="text-blue-400">Med: {state.imageAnalysis.recommendedTiles.medium}</span>
+                      <span className="text-sky-400">Med: {state.imageAnalysis.recommendedTiles.medium}</span>
                       <span className="text-green-400">High: {state.imageAnalysis.recommendedTiles.high}</span>
                     </div>
                   </div>
@@ -157,9 +157,9 @@ function App() {
 
           {/* Step 2: Upload Tiles */}
           {state.step >= 2 && (
-            <section className="bg-gray-800/30 rounded-xl p-6">
+            <section className="glass-panel rounded-xl p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-blue-500 text-sm flex items-center justify-center">2</span>
+                <span className="w-6 h-6 rounded-full btn-gradient text-sm flex items-center justify-center">2</span>
                 Upload Tile Images
               </h2>
               <TileUpload
@@ -174,15 +174,15 @@ function App() {
 
           {/* Step 3: Settings & Generate */}
           {state.step >= 2 && state.tileCount > 0 && (
-            <section className="bg-gray-800/30 rounded-xl p-6">
+            <section className="glass-panel rounded-xl p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-blue-500 text-sm flex items-center justify-center">3</span>
+                <span className="w-6 h-6 rounded-full btn-gradient text-sm flex items-center justify-center">3</span>
                 Settings & Generate
               </h2>
 
               <div className="space-y-6">
                 {/* Mode Toggle */}
-                <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                <div className="flex items-center justify-between p-3 glass-panel rounded-lg">
                   <div className="flex items-center gap-3">
                     <Settings className="w-5 h-5 text-gray-400" />
                     <div>
@@ -196,7 +196,7 @@ function App() {
                   </div>
                   <button
                     onClick={() => setManualMode(!state.manualMode)}
-                    className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm"
+                    className="flex items-center gap-1 text-sky-400 hover:text-blue-300 text-sm"
                   >
                     {state.manualMode ? (
                       <>Hide <ChevronUp className="w-4 h-4" /></>
@@ -208,7 +208,7 @@ function App() {
 
                 {/* Manual Mode: Dimensions */}
                 {state.manualMode && (
-                  <div className="p-4 bg-gray-800/30 rounded-lg border border-gray-700">
+                  <div className="p-4 glass-panel rounded-lg border border-[rgba(148,163,184,0.15)]">
                     <h3 className="text-sm font-medium text-gray-300 mb-3">Output Dimensions</h3>
                     <DimensionsInput
                       initialWidth={state.desiredWidth}
@@ -264,7 +264,7 @@ function App() {
 
           {/* Info Box */}
           <div className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-4 flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-sky-400 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-gray-300 space-y-2">
               <p>
                 <strong>Smart Analysis:</strong> The system analyzes your target image complexity and recommends
