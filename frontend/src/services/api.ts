@@ -1,7 +1,10 @@
 import axios from 'axios';
 import type { ResolutionRequirements, SessionStatus, DziMetadata, Resolution, ImageAnalysis } from '../types';
 
-const API_BASE = '/api';
+// Use the production backend URL, or fall back to local proxy for development
+const API_BASE = import.meta.env.DEV
+  ? '/api'
+  : 'https://photo-mosaic-app.onrender.com/api';
 
 export async function createSession(): Promise<string> {
   const response = await axios.post(`${API_BASE}/session`);
