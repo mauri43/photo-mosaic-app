@@ -15,8 +15,8 @@ const router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({
     storage: multer_1.default.memoryStorage(),
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit per file (reduced from 50MB)
-        files: 500 // Max 200 files per upload
+        fileSize: 10 * 1024 * 1024, // 10MB limit per file
+        files: 300 // Max files per upload batch
     }
 });
 // Create new session
@@ -111,8 +111,12 @@ router.post('/session/:sessionId/dimensions', async (req, res) => {
     }
 });
 // Upload tile images - memory optimized for Render free tier (512MB)
-const MAX_TILES = 150; // Reduced limit for free tier
-router.post('/session/:sessionId/tiles', upload.array('images', 200), async (req, res) => {
+// With 32x32 thumbnails at ~800 bytes each:
+// - 300 tiles = ~240KB for thumbnails
+// - Plus LAB color data = ~7KB (24 bytes per tile)
+// - Total per session with 300 tiles ≈ 250KB (down from ~750KB)
+const MAX_TILES = 300; // Increased from 150 due to memory optimizations
+router.post('/session/:sessionId/tiles', upload.array('images', 300), async (req, res) => {
     try {
         const { sessionId } = req.params;
         const session = sessionStore_js_1.sessionStore.getSession(sessionId);

@@ -6,8 +6,8 @@ export interface LabColor {
 
 export interface TileImage {
   id: string;
-  buffer: Buffer;
-  averageColor: LabColor;
+  buffer: Buffer;           // Small 32x32 thumbnail for compositing
+  averageColor: LabColor;   // LAB color for matching
   width: number;
   height: number;
 }
