@@ -1,27 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
 import OpenSeadragon from 'openseadragon';
-import { ZoomIn, ZoomOut, Maximize2, RotateCcw, Download, Loader2, Settings, RefreshCw } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, RotateCcw, Download, Loader2, Settings, RefreshCw, ImagePlus } from 'lucide-react';
 
 interface DeepZoomViewerProps {
   dziUrl: string;
   downloadUrl: string;
   onReset?: () => void;
+  onChangeTarget?: () => void;
   allowDuplicates: boolean;
   allowTinting: boolean;
   fourXDetail: boolean;
   onRegenerateWithSettings?: (settings: { allowDuplicates: boolean; allowTinting: boolean; fourXDetail: boolean }) => void;
   isRegenerating?: boolean;
+  tileCount?: number;
 }
 
 export function DeepZoomViewer({
   dziUrl,
   downloadUrl,
   onReset,
+  onChangeTarget,
   allowDuplicates,
   allowTinting,
   fourXDetail,
   onRegenerateWithSettings,
-  isRegenerating
+  isRegenerating,
+  tileCount = 0
 }: DeepZoomViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<OpenSeadragon.Viewer | null>(null);
@@ -315,17 +319,27 @@ export function DeepZoomViewer({
         </button>
       </div>
 
-      {/* New mosaic button */}
-      {onReset && (
-        <div className="absolute bottom-4 right-4 z-20">
+      {/* Action buttons */}
+      <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+        {onChangeTarget && tileCount > 0 && (
+          <button
+            onClick={onChangeTarget}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors"
+            title="Keep your uploaded tiles and change just the target image"
+          >
+            <ImagePlus className="w-4 h-4" />
+            Change Target
+          </button>
+        )}
+        {onReset && (
           <button
             onClick={onReset}
             className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium transition-colors"
           >
             Start New Mosaic
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Instructions */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800/80 rounded-lg px-3 py-1 text-xs text-gray-400 z-20">

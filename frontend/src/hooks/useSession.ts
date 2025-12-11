@@ -317,6 +317,26 @@ export function useSession() {
     setState(prev => ({ ...prev, error: null }));
   }, []);
 
+  // Change target image while keeping tiles - allows reusing uploaded tiles
+  const changeTarget = useCallback(() => {
+    // Revoke target preview URL
+    if (state.targetImagePreview) {
+      URL.revokeObjectURL(state.targetImagePreview);
+    }
+
+    // Keep session, tiles, and settings - just clear target and mosaic
+    setState(prev => ({
+      ...prev,
+      step: prev.tileCount > 0 ? 2 : 1,
+      targetImagePreview: null,
+      targetImageDimensions: null,
+      imageAnalysis: null,
+      requirements: null,
+      hasMosaic: false,
+      dziMetadata: null
+    }));
+  }, [state.targetImagePreview]);
+
   return {
     state,
     uploadTarget,
@@ -332,6 +352,7 @@ export function useSession() {
     getDziUrl,
     getDownloadUrl,
     reset,
+    changeTarget,
     clearError
   };
 }

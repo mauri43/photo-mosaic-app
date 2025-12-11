@@ -27,6 +27,7 @@ function App() {
     getDziUrl,
     getDownloadUrl,
     reset,
+    changeTarget,
     clearError
   } = useSession();
 
@@ -78,6 +79,8 @@ function App() {
             dziUrl={getDziUrl()}
             downloadUrl={getDownloadUrl()}
             onReset={reset}
+            onChangeTarget={changeTarget}
+            tileCount={state.tileCount}
             allowDuplicates={state.allowDuplicates}
             allowTinting={state.allowTinting}
             fourXDetail={state.fourXDetail}
