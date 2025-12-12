@@ -59,26 +59,42 @@ export async function generateMosaic(
   const tiles = Array.from(session.tileImages.values());
   const tileCount = tiles.length;
 
+  // Calculate effective tile count (actual tiles × max repeats when duplicates allowed)
+  const effectiveTileCount = options.allowDuplicates
+    ? tileCount * (options.maxRepeatsPerTile || 5)
+    : tileCount;
+
+  console.log(`Available: ${tileCount} tiles, effective: ${effectiveTileCount} (${options.maxRepeatsPerTile || 1}x repeats)`);
+
   // Calculate grid dimensions based on resolution and available tiles
   let grid: { cols: number; rows: number };
 
   if (options.useAllTiles && options.resolution === 'high') {
-    // Use ALL available tiles for maximum quality
-    grid = calculateGridFromTileCount(tileCount, aspectRatio);
-    console.log(`Using ALL ${tileCount} tiles for maximum quality: ${grid.cols}x${grid.rows} grid`);
+    // Use ALL available effective tiles for maximum quality
+    grid = calculateGridFromTileCount(effectiveTileCount, aspectRatio);
+    console.log(`Using ALL ${effectiveTileCount} effective tiles for maximum quality: ${grid.cols}x${grid.rows} grid`);
   } else if (options.exactTileCount) {
     // Use exact tile count specified (for auto mode)
     grid = calculateGridFromTileCount(options.exactTileCount, aspectRatio);
     console.log(`Using exact tile count ${options.exactTileCount}: ${grid.cols}x${grid.rows} grid`);
   } else {
     // Use resolution-based calculation
-    grid = calculateGridFromResolution(
+    let baseGrid = calculateGridFromResolution(
       session.targetWidth || targetWidth,
       session.targetHeight || targetHeight,
       options.resolution,
       aspectRatio
     );
-    console.log(`Generating ${options.resolution} mosaic: ${grid.cols}x${grid.rows} grid (${grid.cols * grid.rows} tiles)`);
+
+    // For HIGH resolution: use as many tiles as we have available (up to effective count)
+    // This ensures we maximize quality when user has lots of tiles
+    if (options.resolution === 'high' && effectiveTileCount > baseGrid.cols * baseGrid.rows) {
+      grid = calculateGridFromTileCount(effectiveTileCount, aspectRatio);
+      console.log(`HIGH resolution upgraded: using all ${effectiveTileCount} effective tiles: ${grid.cols}x${grid.rows} grid`);
+    } else {
+      grid = baseGrid;
+      console.log(`Generating ${options.resolution} mosaic: ${grid.cols}x${grid.rows} grid (${grid.cols * grid.rows} tiles)`);
+    }
   }
 
   // Auto-apply 4x detail for low quality to improve appearance
@@ -100,11 +116,7 @@ export async function generateMosaic(
   const totalCellCount = grid.cols * grid.rows;
 
   // Validate tile count
-  // When duplicates are allowed, effective tile availability = actual tiles × max repeats
   const usesDetailMode = options.resolution === 'low' || options.nineXDetail;
-  const effectiveTileCount = options.allowDuplicates
-    ? tileCount * (options.maxRepeatsPerTile || 5)
-    : tileCount;
 
   if (!usesDetailMode && effectiveTileCount < totalCellCount) {
     if (options.allowDuplicates) {
@@ -121,7 +133,7 @@ export async function generateMosaic(
     }
   }
 
-  console.log(`Effective tile availability: ${effectiveTileCount} (${tileCount} tiles × ${options.maxRepeatsPerTile || (options.allowDuplicates ? 5 : 1)} max repeats)`);
+  console.log(`Grid: ${grid.cols}x${grid.rows} = ${totalCellCount} cells, using ${effectiveTileCount} effective tiles`);
 
   // Calculate cell dimensions based on actual image size
   const cellWidth = targetWidth / grid.cols;
